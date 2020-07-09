@@ -1,0 +1,28 @@
+dns:
+  # DNS server address.
+  server: "127.0.0.1:53"
+  # Network timeout for DNS requests.
+  timeout: "30s"
+  # DNS zone list.
+  zones:
+    - server.local.
+# TXT record parsing configuration.
+txt:
+  # Key/value pair parsing configuration.
+  kv:
+    # Separator between k/v pairs found in TXT records.
+    separator: ";"
+    # Separator between a key and a value.
+    equalsign: "="
+  # Host attribute parsing configuration
+  keys:
+    # Separator between elements of an Ansible group name.
+    separator: "_"
+    # Key name of the attribute containing the host operating system identifier.
+    os: "OS"
+    # Key name of the attribute containing the host environment identifier.
+    env: "ENV"
+    # Key name of the attribute containing the host role identifier.
+    role: "ROLE"
+    # Key name of the attribute containing the host service identifier.
+    srv: "SRV"
