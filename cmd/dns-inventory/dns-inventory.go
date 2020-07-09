@@ -241,9 +241,9 @@ func init() {
 	// Load YAML configuration.
 	viper.SetConfigName("ansible-dns-inventory")
 	viper.SetConfigType("yaml")
-	viper.AddConfigPath("/etc/ansible")
-	viper.AddConfigPath("$HOME/.ansible")
 	viper.AddConfigPath(".")
+	viper.AddConfigPath("$HOME/.ansible")
+	viper.AddConfigPath("/etc/ansible")
 
 	err := viper.ReadInConfig()
 	if err != nil {
