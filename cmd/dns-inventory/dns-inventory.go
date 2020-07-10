@@ -77,7 +77,7 @@ func (n *TreeNode) loadHosts(hosts map[string]*TXTAttrs) {
 					// Add service groups.
 					srvGroup := roleGroup
 					for i, s := range strings.Split(srv, separator) {
-						if len(s) > 0 && (i == 0 || env != "all") {
+						if len(s) > 0 && (i == 0 || env != "all" || attrs.Env == "all") {
 							group := fmt.Sprintf("%s%s%s", srvGroup, separator, s)
 							n.addGroup(srvGroup, group)
 							srvGroup = fmt.Sprintf("%s%s%s", srvGroup, separator, s)
