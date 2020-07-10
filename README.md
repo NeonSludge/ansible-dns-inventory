@@ -57,3 +57,61 @@ txt:
 
 ### Inventory structure
 
+In general, if you have a single TXT record for a `HOST` and this record has all 4 attributes set then this `HOST` will end up in this hierarchy of groups:
+
+```
+@all:
+  |--@all_<ROLE>:
+  |  |--@all_<ROLE>_<SRV[1]>:
+  |  |  |--<HOST>
+  |--@all_host:
+  |  |--@all_host_<OS>:
+  |  |  |--<HOST>
+  |--@<ENV>:
+  |  |--@<ENV>_<ROLE>:
+  |  |  |--@<ENV>_<ROLE>_<SRV[1]>:
+  |  |  |  |--@<ENV>_<ROLE>_<SRV[1]>_..._<SRV[n]>:
+  |  |  |  |  |--<HOST>
+  |  |--@<ENV>_host:
+  |  |  |--@<ENV>_host_<OS>:
+  |  |  |  |--<HOST>
+```
+
+Lets say you have these records in your DNS server:
+
+| Host                | TXT record                                            |
+| ------------------- | ----------------------------------------------------- |
+| `app01.infra.local` | `OS=linux;ENV=dev;ROLE=app;SRV=tomcat_backend_auth`   |
+| `app02.infra.local` | `OS=linux;ENV=dev;ROLE=app;SRV=tomcat_backend_auth`   |
+| `app03.infra.local` | `OS=linux;ENV=dev;ROLE=app;SRV=tomcat_backend_media`  |
+
+This will produce the following Ansible inventory tree:
+
+```
+@all:
+  |--@all_app:
+  |  |--@all_app_tomcat:
+  |  |  |--app01.infra.local
+  |  |  |--app02.infra.local
+  |  |  |--app03.infra.local
+  |--@all_host:
+  |  |--@all_host_linux:
+  |  |  |--app01.infra.local
+  |  |  |--app02.infra.local
+  |  |  |--app03.infra.local
+  |--@dev:
+  |  |--@dev_app:
+  |  |  |--@dev_app_tomcat:
+  |  |  |  |--@dev_app_tomcat_backend:
+  |  |  |  |  |--@dev_app_tomcat_backend_auth:
+  |  |  |  |  |  |--app01.infra.local
+  |  |  |  |  |  |--app02.infra.local
+  |  |  |  |  |--@dev_app_tomcat_backend_media:
+  |  |  |  |  |  |--app03.infra.local
+  |  |--@dev_host:
+  |  |  |--@dev_host_linux:
+  |  |  |  |--app01.infra.local
+  |  |  |  |--app02.infra.local
+  |  |  |  |--app03.infra.local
+  |--@ungrouped:
+```
