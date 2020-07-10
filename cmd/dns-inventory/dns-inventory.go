@@ -59,6 +59,8 @@ type (
 
 // Load a list of hosts into the inventory tree, starting from this node.
 func (n *TreeNode) loadHosts(hosts map[string]*TXTAttrs) {
+	separator := viper.GetString("txt.keys.separator")
+
 	for host, attrs := range hosts {
 		// Automatically create pseudo-groups for the "all" environment.
 		for _, env := range []string{attrs.Env, "all"} {
@@ -67,18 +69,18 @@ func (n *TreeNode) loadHosts(hosts map[string]*TXTAttrs) {
 				// A host can have several services.
 				for _, srv := range strings.Split(attrs.Srv, ",") {
 					// Add the environment and role groups
-					roleGroup := fmt.Sprintf("%s%s%s", env, viper.GetString("txt.keys.separator"), role)
+					roleGroup := fmt.Sprintf("%s%s%s", env, separator, role)
 
 					n.addGroup(n.Name, env)
 					n.addGroup(env, roleGroup)
 
 					// Add service groups.
 					srvGroup := roleGroup
-					for _, s := range strings.Split(srv, viper.GetString("txt.keys.separator")) {
+					for _, s := range strings.Split(srv, separator) {
 						if len(s) > 0 {
-							group := fmt.Sprintf("%s%s%s", srvGroup, viper.GetString("txt.keys.separator"), s)
+							group := fmt.Sprintf("%s%s%s", srvGroup, separator, s)
 							n.addGroup(srvGroup, group)
-							srvGroup = fmt.Sprintf("%s%s%s", srvGroup, viper.GetString("txt.keys.separator"), s)
+							srvGroup = fmt.Sprintf("%s%s%s", srvGroup, separator, s)
 						}
 					}
 
@@ -88,8 +90,8 @@ func (n *TreeNode) loadHosts(hosts map[string]*TXTAttrs) {
 			}
 
 			// Add OS-based groups.
-			hostGroup := fmt.Sprintf("%s%shost", env, viper.GetString("txt.keys.separator"))
-			osGroup := fmt.Sprintf("%s%shost%s%s", env, viper.GetString("txt.keys.separator"), viper.GetString("txt.keys.separator"), attrs.OS)
+			hostGroup := fmt.Sprintf("%s%shost", env, separator)
+			osGroup := fmt.Sprintf("%s%shost%s%s", env, separator, separator, attrs.OS)
 			n.addGroup(env, hostGroup)
 			n.addGroup(hostGroup, osGroup)
 			n.addHost(osGroup, host)
