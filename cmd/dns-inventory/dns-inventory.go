@@ -122,14 +122,16 @@ func (n *TreeNode) findByName(name string) *TreeNode {
 
 // Add a group to the inventory tree as a child of the specified parent.
 func (n *TreeNode) addGroup(parent string, name string) {
-	if g := n.findByName(name); g == nil {
-		// Add the group only if it doesn't exist.
-		if pg := n.findByName(parent); pg != nil {
-			// If the parent group is found, add the group as a child.
-			pg.Children = append(pg.Children, &TreeNode{Name: name})
-		} else {
-			// If the parent group is not found, add the group as a child to the current node.
-			n.Children = append(n.Children, &TreeNode{Name: name})
+	if parent != name {
+		if g := n.findByName(name); g == nil {
+			// Add the group only if it doesn't exist.
+			if pg := n.findByName(parent); pg != nil {
+				// If the parent group is found, add the group as a child.
+				pg.Children = append(pg.Children, &TreeNode{Name: name})
+			} else {
+				// If the parent group is not found, add the group as a child to the current node.
+				n.Children = append(n.Children, &TreeNode{Name: name})
+			}
 		}
 	}
 }
