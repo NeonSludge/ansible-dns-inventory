@@ -31,7 +31,7 @@ If a host has several TXT records, the last one wins. So if you have other stuff
 
 ### Config file
 
-`ansible-dns-inventory` uses an YAML configuration file. It looks for an `ansible-dns-inventory.yaml` file inside these directories (in this specific order):
+`ansible-dns-inventory` uses a YAML configuration file. It looks for an `ansible-dns-inventory.yaml` file inside these directories (in this specific order):
 
 * `.` (current working directory)
 * `~/.ansible/`
@@ -70,14 +70,15 @@ In general, if you have a single TXT record for a `HOST` and this record has all
   |--@<ENV>:
   |  |--@<ENV>_<ROLE>:
   |  |  |--@<ENV>_<ROLE>_<SRV[1]>:
-  |  |  |  |--@<ENV>_<ROLE>_<SRV[1]>_..._<SRV[n]>:
-  |  |  |  |  |--<HOST>
+  |  |  |  |--@<ENV>_<ROLE>_<SRV[1]>_<SRV[2]>:
+  |  |  |  |  |--@<ENV>_<ROLE>_<SRV[1]>_<SRV[2]>_..._<SRV[n]>:
+  |  |  |  |  |  |--<HOST>
   |  |--@<ENV>_host:
   |  |  |--@<ENV>_host_<OS>:
   |  |  |  |--<HOST>
 ```
 
-Lets say you have these records in your DNS server:
+Let's say you have these records in your DNS server:
 
 | Host                | TXT record                                            |
 | ------------------- | ----------------------------------------------------- |
@@ -85,7 +86,7 @@ Lets say you have these records in your DNS server:
 | `app02.infra.local` | `OS=linux;ENV=dev;ROLE=app;SRV=tomcat_backend_auth`   |
 | `app03.infra.local` | `OS=linux;ENV=dev;ROLE=app;SRV=tomcat_backend_media`  |
 
-This will produce the following Ansible inventory tree:
+These will produce the following Ansible inventory tree:
 
 ```
 @all:
