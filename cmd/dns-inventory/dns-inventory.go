@@ -45,7 +45,7 @@ type (
 		// Group children.
 		Children []*TreeNode
 		// Hosts belonging to this group.
-		Hosts []string
+		Hosts map[string]bool
 	}
 
 	// A JSON inventory representation of an Ansible group.
@@ -63,7 +63,11 @@ func (n *TreeNode) loadHosts(hosts map[string]*TXTAttrs) {
 
 	for host, attrs := range hosts {
 		// Automatically create pseudo-groups for the "all" environment.
-		for _, env := range []string{attrs.Env, "all"} {
+		envs := make(map[string]bool)
+		envs[attrs.Env] = true
+		envs["all"] = true
+
+		for env := range envs {
 			// A host can have several roles.
 			for _, role := range strings.Split(attrs.Role, ",") {
 				// A host can have several services.
@@ -127,10 +131,10 @@ func (n *TreeNode) addGroup(parent string, name string) {
 			// Add the group only if it doesn't exist.
 			if pg := n.findByName(parent); pg != nil {
 				// If the parent group is found, add the group as a child.
-				pg.Children = append(pg.Children, &TreeNode{Name: name})
+				pg.Children = append(pg.Children, &TreeNode{Name: name, Hosts: make(map[string]bool)})
 			} else {
 				// If the parent group is not found, add the group as a child to the current node.
-				n.Children = append(n.Children, &TreeNode{Name: name})
+				n.Children = append(n.Children, &TreeNode{Name: name, Hosts: make(map[string]bool)})
 			}
 		}
 	}
@@ -140,23 +144,29 @@ func (n *TreeNode) addGroup(parent string, name string) {
 func (n *TreeNode) addHost(group string, name string) {
 	if g := n.findByName(group); g != nil {
 		// If the group is found, add the host.
-		g.Hosts = append(g.Hosts, name)
+		g.Hosts[name] = true
 	} else {
 		// If the group is not found, add the host to the current node.
-		n.Hosts = append(n.Hosts, name)
+		n.Hosts[name] = true
 	}
 }
 
 // Export the inventory tree to a map ready to be marshalled into a JSON representation of an Ansible inventory, starting from this node.
 func (n *TreeNode) exportInventory(inventory map[string]*InventoryGroup) {
-	// Collect children of this node.
-	children := []string{}
+	// Collect node children.
+	children := make([]string, 0, len(n.Children))
 	for _, child := range n.Children {
 		children = append(children, child.Name)
 	}
 
+	// Collect node hosts.
+	hosts := make([]string, 0, len(n.Hosts))
+	for host := range n.Hosts {
+		hosts = append(hosts, host)
+	}
+
 	// Put this node into the map.
-	inventory[n.Name] = &InventoryGroup{Children: children, Hosts: n.Hosts}
+	inventory[n.Name] = &InventoryGroup{Children: children, Hosts: hosts}
 
 	// Process other nodes recursively.
 	if len(n.Children) > 0 {
@@ -277,7 +287,7 @@ func main() {
 
 	if *listFlag {
 		// Initialize the inventory tree.
-		tree := &TreeNode{Name: "all"}
+		tree := &TreeNode{Name: "all", Hosts: make(map[string]bool)}
 
 		// Transfer all of the zones, load results into the inventory tree.
 		for _, zone := range viper.GetStringSlice("dns.zones") {
