@@ -283,7 +283,7 @@ func main() {
 
 	if *listFlag {
 		// Initialize the inventory tree.
-		tree := &TreeNode{Name: "all"}
+		tree := &TreeNode{Name: "all", Hosts: make(map[string]bool)}
 
 		// Transfer all of the zones, load results into the inventory tree.
 		for _, zone := range viper.GetStringSlice("dns.zones") {
