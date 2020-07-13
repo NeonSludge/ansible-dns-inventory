@@ -63,7 +63,11 @@ func (n *TreeNode) loadHosts(hosts map[string]*TXTAttrs) {
 
 	for host, attrs := range hosts {
 		// Automatically create pseudo-groups for the "all" environment.
-		for _, env := range []string{attrs.Env, "all"} {
+		envs := make(map[string]bool)
+		envs[attrs.Env] = true
+		envs["all"] = true
+
+		for env := range envs {
 			// A host can have several roles.
 			for _, role := range strings.Split(attrs.Role, ",") {
 				// A host can have several services.
