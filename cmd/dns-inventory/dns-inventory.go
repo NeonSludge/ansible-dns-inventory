@@ -127,10 +127,10 @@ func (n *TreeNode) addGroup(parent string, name string) {
 			// Add the group only if it doesn't exist.
 			if pg := n.findByName(parent); pg != nil {
 				// If the parent group is found, add the group as a child.
-				pg.Children = append(pg.Children, &TreeNode{Name: name})
+				pg.Children = append(pg.Children, &TreeNode{Name: name, Hosts: make(map[string]bool)})
 			} else {
 				// If the parent group is not found, add the group as a child to the current node.
-				n.Children = append(n.Children, &TreeNode{Name: name})
+				n.Children = append(n.Children, &TreeNode{Name: name, Hosts: make(map[string]bool)})
 			}
 		}
 	}
