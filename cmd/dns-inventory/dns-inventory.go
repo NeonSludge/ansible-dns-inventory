@@ -45,7 +45,7 @@ type (
 		// Group children.
 		Children []*TreeNode
 		// Hosts belonging to this group.
-		Hosts []string
+		Hosts map[string]bool
 	}
 
 	// A JSON inventory representation of an Ansible group.
@@ -140,23 +140,29 @@ func (n *TreeNode) addGroup(parent string, name string) {
 func (n *TreeNode) addHost(group string, name string) {
 	if g := n.findByName(group); g != nil {
 		// If the group is found, add the host.
-		g.Hosts = append(g.Hosts, name)
+		g.Hosts[name] = true
 	} else {
 		// If the group is not found, add the host to the current node.
-		n.Hosts = append(n.Hosts, name)
+		n.Hosts[name] = true
 	}
 }
 
 // Export the inventory tree to a map ready to be marshalled into a JSON representation of an Ansible inventory, starting from this node.
 func (n *TreeNode) exportInventory(inventory map[string]*InventoryGroup) {
-	// Collect children of this node.
-	children := []string{}
+	// Collect node children.
+	children := make([]string, 0, len(n.Children))
 	for _, child := range n.Children {
 		children = append(children, child.Name)
 	}
 
+	// Collect node hosts.
+	hosts := make([]string, 0, len(n.Hosts))
+	for host := range n.Hosts {
+		hosts = append(hosts, host)
+	}
+
 	// Put this node into the map.
-	inventory[n.Name] = &InventoryGroup{Children: children, Hosts: n.Hosts}
+	inventory[n.Name] = &InventoryGroup{Children: children, Hosts: hosts}
 
 	// Process other nodes recursively.
 	if len(n.Children) > 0 {
