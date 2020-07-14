@@ -2,7 +2,9 @@
 
 A [dynamic inventory](https://docs.ansible.com/ansible/latest/user_guide/intro_dynamic_inventory.html) script for Ansible that discovers hosts and groups via a DNS zone transfer and organizes them into a tree.
 
-This utility uses a DNS server as a single-source-of-truth for your Ansible inventories. It extracts host attributes from corresponding DNS TXT records and builds a tree out of them that then gets exported into a JSON representation, ready for use by Ansible.
+This utility uses a DNS server as a single-source-of-truth for your Ansible inventories. It extracts host attributes from corresponding DNS TXT records and builds a tree out of them that then gets exported into a JSON representation, ready for use by Ansible. A tree is often a very convenient way of organizing your inventory because it allows for a predictable variable merging/flattening order.
+
+This dynamic inventory started as a Bash script and has been used for a couple of years in environments ranging from tens to hundreds of hosts. I am publishing this Golang version in hopes that someone else finds it useful.
 
 For this to work you must ensure that:
 
@@ -19,15 +21,15 @@ OS=linux;ENV=dev;ROLE=app;SRV=tomcat_backend_auth
 ```
 
 #### Host attributes (default key names)
-| Key  | Description                                                |
-| ---- | ---------------------------------------------------------- |
-| OS   | Operating system identifier.                               |
-| ENV  | Environment identifier.                                    |
-| ROLE | Host role identifier(s). Can be a comma-delimited list.    |
-| SRV  | Host service identifier(s). Can be a comma-delimited list. |
+| Key  | Description                                                                                                                                                 |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| OS   | Operating system identifier.                                                                                                                                |
+| ENV  | Environment identifier.                                                                                                                                     |
+| ROLE | Host role identifier(s). Can be a comma-delimited list.                                                                                                     |
+| SRV  | Host service identifier(s). This will be split further using the `txt.keys.separator` to produce a hierarchy of groups. Can also be a comma-delimited list. |
 
 Key names and separators are customizable via `ansible-dns-inventory`'s config file.
-If a host has several TXT records, the last one wins. So if you have other stuff you would like to put in there, make sure that the last TXT record is always exclusively meant for `ansible-dns-inventory`.
+If a host has several TXT records, the first one wins. So if you have other stuff you would like to put in there, make sure that the first TXT record returned by your DNS server for a given host is always exclusively meant for `ansible-dns-inventory`.
 
 ### Config file
 
