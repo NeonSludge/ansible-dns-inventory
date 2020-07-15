@@ -218,8 +218,7 @@ func makeHosts(records []dns.RR) map[string]*TXTAttrs {
 		name := strings.TrimSuffix(rr.Header().Name, ".")
 		_, ok := hosts[name] // First host record wins.
 		if !ok {
-			txt := parseTXT(dns.Field(rr, dnsRrTxtField))
-			hosts[name] = txt
+			hosts[name] = parseTXT(dns.Field(rr, dnsRrTxtField))
 		}
 	}
 
@@ -228,21 +227,29 @@ func makeHosts(records []dns.RR) map[string]*TXTAttrs {
 
 // Parse a raw TXT record
 func parseTXT(raw string) *TXTAttrs {
+	separator := viper.GetString("txt.kv.separator")
+	equalsign := viper.GetString("txt.kv.equalsign")
+
+	keyOS := viper.GetString("txt.keys.os")
+	keyEnv := viper.GetString("txt.keys.env")
+	keyRole := viper.GetString("txt.keys.role")
+	keySrv := viper.GetString("txt.keys.srv")
+
 	txt := &TXTAttrs{}
-	items := strings.Split(raw, viper.GetString("txt.kv.separator"))
+	items := strings.Split(raw, separator)
 
 	for _, item := range items {
-		kv := strings.Split(item, viper.GetString("txt.kv.equalsign"))
+		kv := strings.Split(item, equalsign)
 		if len(kv[1]) > 0 {
 			// Skip keys if they are unknown or their values are empty.
 			switch kv[0] {
-			case viper.GetString("txt.keys.os"):
+			case keyOS:
 				txt.OS = kv[1]
-			case viper.GetString("txt.keys.env"):
+			case keyEnv:
 				txt.Env = kv[1]
-			case viper.GetString("txt.keys.role"):
+			case keyRole:
 				txt.Role = kv[1]
-			case viper.GetString("txt.keys.srv"):
+			case keySrv:
 				txt.Srv = kv[1]
 			}
 		}
