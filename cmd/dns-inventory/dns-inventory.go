@@ -84,7 +84,7 @@ func (n *TreeNode) loadHosts(hosts map[string]*TXTAttrs) {
 						if len(s) > 0 && (i == 0 || env != "all" || attrs.Env == "all") {
 							group := fmt.Sprintf("%s%s%s", srvGroup, separator, s)
 							n.addGroup(srvGroup, group)
-							srvGroup = fmt.Sprintf("%s%s%s", srvGroup, separator, s)
+							srvGroup = group
 						}
 					}
 
