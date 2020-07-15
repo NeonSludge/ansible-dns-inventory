@@ -1,4 +1,6 @@
 # ansible-dns-inventory
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FNeonSludge%2Fansible-dns-inventory.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FNeonSludge%2Fansible-dns-inventory?ref=badge_shield)
+
 
 A [dynamic inventory](https://docs.ansible.com/ansible/latest/user_guide/intro_dynamic_inventory.html) script for Ansible that discovers hosts and groups via a DNS zone transfer and organizes them into a tree.
 
@@ -118,3 +120,7 @@ These will produce the following Ansible inventory tree:
   |  |  |  |--app03.infra.local
   |--@ungrouped:
 ```
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FNeonSludge%2Fansible-dns-inventory.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FNeonSludge%2Fansible-dns-inventory?ref=badge_large)
