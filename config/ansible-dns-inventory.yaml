@@ -11,7 +11,7 @@ dns:
     # Enable no-transfer data retrieval mode.
     enabled: false
     # A host whose TXT records contain inventory data.
-    name: "ansible-dns-inventory"
+    host: "ansible-dns-inventory"
     # Separator between a hostname and an attribute string in a TXT record.
     separator: ":"
 # TXT record parsing configuration.

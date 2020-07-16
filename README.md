@@ -8,7 +8,7 @@ This dynamic inventory started as a Bash script and has been used for a couple o
 
 For this to work you must ensure that:
 
-1. Your DNS server allows zone transfers (AXFR) to the host that is going to be running `ansible-dns-inventory` (Ansible control node).
+1. Your DNS server allows zone transfers (AXFR) to the host that is going to be running `ansible-dns-inventory` (Ansible control node) OR you have a .
 2. Every host that should be managed by Ansible has a properly formatted DNS TXT record.
 3. You have created a configuration file for `ansible-dns-inventory`.
 
