@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -20,12 +21,6 @@ const (
 )
 
 type (
-	// DNS zone transfer result.
-	DNSZone struct {
-		// DNS records that were received during the transfer.
-		Records []dns.RR
-	}
-
 	// Host attributes found in its TXT record.
 	TXTAttrs struct {
 		// Host operating system identifier.
@@ -158,12 +153,14 @@ func (n *TreeNode) exportInventory(inventory map[string]*InventoryGroup) {
 	for _, child := range n.Children {
 		children = append(children, child.Name)
 	}
+	sort.Strings(children)
 
 	// Collect node hosts.
 	hosts := make([]string, 0, len(n.Hosts))
 	for host := range n.Hosts {
 		hosts = append(hosts, host)
 	}
+	sort.Strings(hosts)
 
 	// Put this node into the map.
 	inventory[n.Name] = &InventoryGroup{Children: children, Hosts: hosts}
@@ -177,12 +174,13 @@ func (n *TreeNode) exportInventory(inventory map[string]*InventoryGroup) {
 }
 
 // Perform a DNS zone transfer (AXFR), return the results.
-func transferZone(domain string, server string) (*DNSZone, error) {
-	zone := &DNSZone{}
+func transferZone(domain string, server string) ([]dns.RR, error) {
+	records := make([]dns.RR, 0)
+	notxName := viper.GetString("dns.notransfer.host")
 
 	timeout, err := time.ParseDuration(viper.GetString("dns.timeout"))
 	if err != nil {
-		return zone, errors.Wrap(err, "zone transfer failed")
+		return records, errors.Wrap(err, "zone transfer failed")
 	}
 	tx := &dns.Transfer{
 		DialTimeout:  timeout,
@@ -191,34 +189,76 @@ func transferZone(domain string, server string) (*DNSZone, error) {
 	}
 
 	msg := new(dns.Msg)
-	msg.SetAxfr(domain)
+	msg.SetAxfr(dns.Fqdn(domain))
 
 	// Perform the transfer.
 	c, err := tx.In(msg, server)
 	if err != nil {
-		return zone, errors.Wrap(err, "zone transfer failed")
+		return records, errors.Wrap(err, "zone transfer failed")
 	}
 
-	// Process transferred records. Ignore anything that is not a TXT record.
+	// Process transferred records. Ignore anything that is not a TXT recordd. Ignore the special inventory record as well.
 	for e := range c {
 		for _, rr := range e.RR {
-			if rr.Header().Rrtype == dnsRrTxtType {
-				zone.Records = append(zone.Records, rr)
+			if rr.Header().Rrtype == dnsRrTxtType && rr.Header().Name != dns.Fqdn(notxName+"."+domain) {
+				records = append(records, rr)
 			}
 		}
 	}
+	if len(records) == 0 {
+		return records, errors.Wrap(fmt.Errorf("no TXT records found: %s", domain), "zone transfer failed")
+	}
 
-	return zone, nil
+	return records, nil
+}
+
+func getInventoryRecord(host string, domain string, server string) ([]dns.RR, error) {
+	records := make([]dns.RR, 0)
+	name := fmt.Sprintf("%s.%s", host, dns.Fqdn(domain))
+
+	timeout, err := time.ParseDuration(viper.GetString("dns.timeout"))
+	if err != nil {
+		return records, errors.Wrap(err, "inventory record loading failed")
+	}
+	client := &dns.Client{
+		Timeout: timeout,
+	}
+
+	msg := new(dns.Msg)
+	msg.SetQuestion(name, dns.TypeTXT)
+
+	rx, _, err := client.Exchange(msg, server)
+	if err != nil {
+		return records, errors.Wrap(err, "inventory record loading failed")
+	} else if len(rx.Answer) == 0 {
+		return records, errors.Wrap(fmt.Errorf("not found: %s", name), "inventory record loading failed")
+	}
+
+	return rx.Answer, nil
 }
 
 // Parse zone transfer results and create a list of hosts and their attributes.
-func makeHosts(records []dns.RR) map[string]*TXTAttrs {
+func parseTXTRecords(records []dns.RR) map[string]*TXTAttrs {
 	hosts := make(map[string]*TXTAttrs)
+	notx := viper.GetBool("dns.notransfer.enabled")
+	separator := viper.GetString("dns.notransfer.separator")
+
 	for _, rr := range records {
-		name := strings.TrimSuffix(rr.Header().Name, ".")
+		var name string
+
+		if notx {
+			name = strings.TrimSuffix(strings.Split(dns.Field(rr, dnsRrTxtField), separator)[0], ".")
+		} else {
+			name = strings.TrimSuffix(rr.Header().Name, ".")
+		}
+
 		_, ok := hosts[name] // First host record wins.
 		if !ok {
-			hosts[name] = parseTXT(dns.Field(rr, dnsRrTxtField))
+			if notx {
+				hosts[name] = parseTXTValue(strings.Split(dns.Field(rr, dnsRrTxtField), separator)[1])
+			} else {
+				hosts[name] = parseTXTValue(dns.Field(rr, dnsRrTxtField))
+			}
 		}
 	}
 
@@ -226,7 +266,7 @@ func makeHosts(records []dns.RR) map[string]*TXTAttrs {
 }
 
 // Parse a raw TXT record
-func parseTXT(raw string) *TXTAttrs {
+func parseTXTValue(raw string) *TXTAttrs {
 	separator := viper.GetString("txt.kv.separator")
 	equalsign := viper.GetString("txt.kv.equalsign")
 
@@ -235,7 +275,7 @@ func parseTXT(raw string) *TXTAttrs {
 	keyRole := viper.GetString("txt.keys.role")
 	keySrv := viper.GetString("txt.keys.srv")
 
-	txt := &TXTAttrs{}
+	attrs := &TXTAttrs{}
 	items := strings.Split(raw, separator)
 
 	for _, item := range items {
@@ -244,18 +284,18 @@ func parseTXT(raw string) *TXTAttrs {
 			// Skip keys if they are unknown or their values are empty.
 			switch kv[0] {
 			case keyOS:
-				txt.OS = kv[1]
+				attrs.OS = kv[1]
 			case keyEnv:
-				txt.Env = kv[1]
+				attrs.Env = kv[1]
 			case keyRole:
-				txt.Role = kv[1]
+				attrs.Role = kv[1]
 			case keySrv:
-				txt.Srv = kv[1]
+				attrs.Srv = kv[1]
 			}
 		}
 	}
 
-	return txt
+	return attrs
 }
 
 func init() {
@@ -276,11 +316,14 @@ func init() {
 	viper.SetDefault("dns.timeout", "30s")
 	viper.SetDefault("dns.zones", []string{"server.local."})
 
+	viper.SetDefault("dns.notransfer.enabled", false)
+	viper.SetDefault("dns.notransfer.host", "ansible-dns-inventory")
+	viper.SetDefault("dns.notransfer.separator", ":")
+
 	viper.SetDefault("txt.kv.separator", ";")
 	viper.SetDefault("txt.kv.equalsign", "=")
 
 	viper.SetDefault("txt.keys.separator", "_")
-
 	viper.SetDefault("txt.keys.os", "OS")
 	viper.SetDefault("txt.keys.env", "ENV")
 	viper.SetDefault("txt.keys.role", "ROLE")
@@ -295,15 +338,25 @@ func main() {
 	if *listFlag {
 		// Initialize the inventory tree.
 		tree := &TreeNode{Name: "all", Hosts: make(map[string]bool)}
+		server := viper.GetString("dns.server")
+		notx := viper.GetBool("dns.notransfer.enabled")
+		notxName := viper.GetString("dns.notransfer.host")
 
 		// Transfer all of the zones, load results into the inventory tree.
 		for _, zone := range viper.GetStringSlice("dns.zones") {
-			dnsZone, err := transferZone(zone, viper.GetString("dns.server"))
+			var records []dns.RR
+			var err error
+
+			if notx {
+				records, err = getInventoryRecord(notxName, zone, server)
+			} else {
+				records, err = transferZone(zone, server)
+			}
 			if err != nil {
 				panic(err)
 			}
 
-			tree.loadHosts(makeHosts(dnsZone.Records))
+			tree.loadHosts(parseTXTRecords(records))
 		}
 
 		// Export the tree into a map.
