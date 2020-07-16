@@ -1,6 +1,6 @@
 # ansible-dns-inventory
 
-A [dynamic inventory](https://docs.ansible.com/ansible/latest/user_guide/intro_dynamic_inventory.html) script for Ansible that discovers hosts and groups via a DNS zone transfer and organizes them into a tree.
+A [dynamic inventory](https://docs.ansible.com/ansible/latest/user_guide/intro_dynamic_inventory.html) script for Ansible that discovers hosts and groups via a DNS request and organizes them into a tree.
 
 This utility uses a DNS server as a single-source-of-truth for your Ansible inventories. It extracts host attributes from corresponding DNS TXT records and builds a tree out of them that then gets exported into a JSON representation, ready for use by Ansible. A tree is often a very convenient way of organizing your inventory because it allows for a predictable variable merging/flattening order.
 
@@ -8,17 +8,29 @@ This dynamic inventory started as a Bash script and has been used for a couple o
 
 For this to work you must ensure that:
 
-1. Your DNS server allows zone transfers (AXFR) to the host that is going to be running `ansible-dns-inventory` (Ansible control node).
-2. Every host that should be managed by Ansible has a properly formatted DNS TXT record.
+1. Your DNS server allows zone transfers (AXFR) to the host that is going to be running `ansible-dns-inventory` (Ansible control node) OR you're using the no-transfer mode (the `dns.notransfer.enabled` parameter in the configuration).
+2. Every host that should be managed by Ansible has a properly formatted DNS TXT record OR there is a set of TXT records belonging to a special host (the `dns.notransfer.host` parameter) AND you're using the no-transfer mode.
 3. You have created a configuration file for `ansible-dns-inventory`.
 
 ### TXT record format
-For a host to appear in `ansible-dns-inventory`'s output its DNS TXT record should contain several attributes formatted as a set of key/value pairs.
+There are two ways to add a host to the inventory:
 
-#### Example of a TXT record
-```
-OS=linux;ENV=dev;ROLE=app;SRV=tomcat_backend_auth
-```
+1. Create a DNS TXT record for this host and format it properly, specifying host attributes as a set of key/value pairs.
+2. Enable the no-transfer mode, add a TXT record for the special host (`ansible-dns-inventory.your.domain` by default) and format it properly, referencing the host you want to add to your inventory and specifying its attributes as a set of key/value pairs.
+
+Here is an example of using both of these ways:
+
+#### Example of a TXT record (regular mode)
+| Host                  | TXT record                                          |
+| --------------------- | --------------------------------------------------- |
+| `app01.infra.local`   | `OS=linux;ENV=dev;ROLE=app;SRV=tomcat_backend_auth` |
+
+#### Example of a TXT record (no-transfer mode)
+| Host                                | TXT record                                                            |
+| ----------------------------------- | --------------------------------------------------------------------- |
+| `ansible-dns-inventory.infra.local` | `app01.infra.local:OS=linux;ENV=dev;ROLE=app;SRV=tomcat_backend_auth` |
+
+The separator between the hostname and the attribute string in the no-transfer mode is customizable (the `dns.notransfer.separator` parameter).
 
 #### Host attributes (default key names)
 | Key  | Description                                                                                                                                                 |
