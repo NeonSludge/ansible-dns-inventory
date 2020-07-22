@@ -74,6 +74,7 @@ func validateAttribute(v interface{}, param string) error {
 		re += "\\,"
 	}
 
+	// Deprecated: using '-' in group names.
 	if separator == "-" {
 		re += "\\_"
 	}
