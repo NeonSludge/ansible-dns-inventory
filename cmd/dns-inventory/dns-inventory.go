@@ -33,7 +33,7 @@ type (
 		// Host environment identifier.
 		Env string `validate:"nonzero,safe"`
 		// Host role identifier.
-		Role string `validate:"nonzero,safe"`
+		Role string `validate:"nonzero,safe=list"`
 		// Host service identifier.
 		Srv string `validate:"safe=srv"`
 	}
@@ -57,30 +57,28 @@ type (
 	}
 )
 
-// Validate Ansible group name segments.
+// Validate host attributes.
 func validateAttribute(v interface{}, param string) error {
 	value := reflect.ValueOf(v)
 	if value.Kind() != reflect.String {
 		return errors.New("ansiblename only validates strings")
 	}
 
-	var re string
-	switch viper.GetString("txt.keys.separator") {
-	case "-":
-		if param == "srv" {
-			re = "^[A-Za-z0-9-]*$"
-		} else {
-			re = "^[A-Za-z0-9_]*$"
-		}
-	case "_":
-		if param == "srv" {
-			re = "^[A-Za-z0-9_]*$"
-		} else {
-			re = "^[A-Za-z0-9]*$"
-		}
-	default:
-		re = "^[A-Za-z0-9]*$"
+	separator := viper.GetString("txt.keys.separator")
+	re := "^[A-Za-z0-9"
+
+	switch param {
+	case "srv":
+		re += "\\,\\" + separator
+	case "list":
+		re += "\\,"
 	}
+
+	if separator == "-" {
+		re += "\\_"
+	}
+
+	re += "]*$"
 
 	pattern := regexp.MustCompile(re)
 	if !pattern.MatchString(value.String()) {
@@ -289,10 +287,10 @@ func parseTXTRecords(records []dns.RR) map[string]*TXTAttrs {
 
 		if notx {
 			name = strings.TrimSuffix(strings.Split(dns.Field(rr, dnsRrTxtField), separator)[0], ".")
-			attrs, err = parseTXTValue(strings.Split(dns.Field(rr, dnsRrTxtField), separator)[1])
+			attrs, err = parseAttributes(strings.Split(dns.Field(rr, dnsRrTxtField), separator)[1])
 		} else {
 			name = strings.TrimSuffix(rr.Header().Name, ".")
-			attrs, err = parseTXTValue(dns.Field(rr, dnsRrTxtField))
+			attrs, err = parseAttributes(dns.Field(rr, dnsRrTxtField))
 		}
 
 		if err != nil {
@@ -309,8 +307,8 @@ func parseTXTRecords(records []dns.RR) map[string]*TXTAttrs {
 	return hosts
 }
 
-// Parse a raw TXT record
-func parseTXTValue(raw string) (*TXTAttrs, error) {
+// Parse host attributes.
+func parseAttributes(raw string) (*TXTAttrs, error) {
 	separator := viper.GetString("txt.kv.separator")
 	equalsign := viper.GetString("txt.kv.equalsign")
 
