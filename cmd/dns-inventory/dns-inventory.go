@@ -378,8 +378,9 @@ func init() {
 	viper.SetDefault("txt.keys.role", "ROLE")
 	viper.SetDefault("txt.keys.srv", "SRV")
 
+	// Setup validators.
 	if err := validator.SetValidationFunc("safe", validateAttribute); err != nil {
-		panic(errors.Wrap(err, "'safe' validator initialization error"))
+		panic(errors.Wrap(err, "validator initialization error"))
 	}
 }
 
@@ -389,21 +390,20 @@ func main() {
 	flag.Parse()
 
 	if *listFlag {
-		// Initialize the inventory tree.
-		tree := &TreeNode{Name: "all", Hosts: make(map[string]bool)}
 		server := viper.GetString("dns.server")
 		notx := viper.GetBool("dns.notransfer.enabled")
 		notxName := viper.GetString("dns.notransfer.host")
 
-		// Transfer all of the zones, load results into the inventory tree.
+		// Transfer DNS zones.
+		records := make([]dns.RR, 0)
 		for _, zone := range viper.GetStringSlice("dns.zones") {
-			var records []dns.RR
+			var rrs []dns.RR
 			var err error
 
 			if notx {
-				records, err = getInventoryRecord(notxName, zone, server)
+				rrs, err = getInventoryRecord(notxName, zone, server)
 			} else {
-				records, err = transferZone(zone, server)
+				rrs, err = transferZone(zone, server)
 			}
 
 			if err != nil {
@@ -411,21 +411,27 @@ func main() {
 				continue
 			}
 
-			tree.loadHosts(parseTXTRecords(records))
+			records = append(records, rrs...)
 		}
 
-		if len(tree.Children) == 0 {
-			log.Fatalln("empty inventory tree")
+		if len(records) == 0 {
+			log.Fatal("empty TXT records list")
 		}
 
-		// Export the tree into a map.
+		// Initialize the inventory tree.
+		tree := &TreeNode{Name: "all", Hosts: make(map[string]bool)}
+
+		// Load DNS records into the inventory tree.
+		tree.loadHosts(parseTXTRecords(records))
+
+		// Export the inventory tree into a map.
 		inventory := make(map[string]*InventoryGroup)
 		tree.exportInventory(inventory)
 
 		// Marshal the map into a JSON representation of an Ansible inventory.
 		jsonInventory, err := json.Marshal(inventory)
 		if err != nil {
-			log.Fatalln(err)
+			log.Fatal(err)
 		}
 
 		fmt.Println(string(jsonInventory))
