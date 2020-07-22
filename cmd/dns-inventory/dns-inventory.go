@@ -299,7 +299,7 @@ func parseTXTRecords(records []dns.RR) map[string]*TXTAttrs {
 		}
 
 		if err != nil {
-			log.Printf("[%s] skipping host: %v", name, err)
+			log.Printf("[%s] skipping host: %v\n", name, err)
 			continue
 		}
 
@@ -406,7 +406,7 @@ func main() {
 				records, err = transferZone(zone, server)
 			}
 			if err != nil {
-				log.Printf("[%s] skipping zone: %v", zone, err)
+				log.Printf("[%s] skipping zone: %v\n", zone, err)
 				continue
 			}
 
@@ -420,7 +420,7 @@ func main() {
 		// Marshal the map into a JSON representation of an Ansible inventory.
 		jsonInventory, err := json.Marshal(inventory)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalln(err)
 		}
 
 		fmt.Println(string(jsonInventory))
