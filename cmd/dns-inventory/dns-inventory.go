@@ -67,21 +67,23 @@ func validateAttribute(v interface{}, param string) error {
 	separator := viper.GetString("txt.keys.separator")
 	re := "^[A-Za-z0-9"
 
-	switch param {
-	case "srv":
-		re += "\\,\\" + separator
-	case "list":
-		re += "\\,"
-	}
-
 	// Deprecated: using '-' in group names.
 	if separator == "-" {
 		re += "\\_"
 	}
 
-	re += "]*$"
+	switch param {
+	case "srv":
+		re += "\\,\\" + separator + "]*$"
+	case "list":
+		re += "\\," + "]*$"
+	}
 
-	pattern := regexp.MustCompile(re)
+	pattern, err := regexp.Compile(re)
+	if err != nil {
+		return errors.Wrap(err, "regex compilation error")
+	}
+
 	if !pattern.MatchString(value.String()) {
 		return fmt.Errorf("string '%s' is not a valid Ansible group name segment (expr: %s)", value.String(), re)
 	}
