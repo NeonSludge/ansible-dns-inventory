@@ -299,7 +299,7 @@ func parseTXTRecords(records []dns.RR) map[string]*TXTAttrs {
 		}
 
 		if err != nil {
-			log.Printf("[%s] skipping host: %v\n", name, err)
+			log.Printf("[%s] skipping host: %v", name, err)
 			continue
 		}
 
@@ -405,8 +405,9 @@ func main() {
 			} else {
 				records, err = transferZone(zone, server)
 			}
+
 			if err != nil {
-				log.Printf("[%s] skipping zone: %v\n", zone, err)
+				log.Printf("[%s] skipping zone: %v", zone, err)
 				continue
 			}
 
