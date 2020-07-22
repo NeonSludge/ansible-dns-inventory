@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"reflect"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -13,6 +15,7 @@ import (
 	"github.com/miekg/dns"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
+	"gopkg.in/validator.v2"
 )
 
 const (
@@ -26,13 +29,13 @@ type (
 	// Host attributes found in its TXT record.
 	TXTAttrs struct {
 		// Host operating system identifier.
-		OS string
+		OS string `validate:"nonzero,ansiblename"`
 		// Host environment identifier.
-		Env string
+		Env string `validate:"nonzero,ansiblename"`
 		// Host role identifier.
-		Role string
+		Role string `validate:"nonzero,ansiblename"`
 		// Host service identifier.
-		Srv string
+		Srv string `validate:"ansiblename"`
 	}
 
 	// Inventory tree node. Represents an Ansible group.
@@ -53,6 +56,29 @@ type (
 		Hosts []string `json:"hosts,omitempty"`
 	}
 )
+
+// Validate Ansible group name segments.
+func validateAnsibleName(v interface{}, param string) error {
+	value := reflect.ValueOf(v)
+	if value.Kind() != reflect.String {
+		return errors.New("ansiblename only validates strings")
+	}
+
+	var re string
+	separator := viper.GetString("txt.keys.separator")
+	if separator == "-" {
+		re = "^[A-Za-z0-9_]*$"
+	} else {
+		re = "^[A-Za-z0-9]*$"
+	}
+
+	pattern := regexp.MustCompile(re)
+	if !pattern.MatchString(value.String()) {
+		return fmt.Errorf("string '%s' is not a valid Ansible group name segment (expr: %s)", value.String(), re)
+	}
+
+	return nil
+}
 
 // Load a list of hosts into the inventory tree, starting from this node.
 func (n *TreeNode) loadHosts(hosts map[string]*TXTAttrs) {
@@ -249,13 +275,19 @@ func parseTXTRecords(records []dns.RR) map[string]*TXTAttrs {
 	for _, rr := range records {
 		var name string
 		var attrs *TXTAttrs
+		var err error
 
 		if notx {
 			name = strings.TrimSuffix(strings.Split(dns.Field(rr, dnsRrTxtField), separator)[0], ".")
-			attrs = parseTXTValue(strings.Split(dns.Field(rr, dnsRrTxtField), separator)[1])
+			attrs, err = parseTXTValue(strings.Split(dns.Field(rr, dnsRrTxtField), separator)[1])
 		} else {
 			name = strings.TrimSuffix(rr.Header().Name, ".")
-			attrs = parseTXTValue(dns.Field(rr, dnsRrTxtField))
+			attrs, err = parseTXTValue(dns.Field(rr, dnsRrTxtField))
+		}
+
+		if err != nil {
+			log.Printf("[%s] skipping host: %v", name, err)
+			continue
 		}
 
 		_, ok := hosts[name] // First host record wins.
@@ -268,7 +300,7 @@ func parseTXTRecords(records []dns.RR) map[string]*TXTAttrs {
 }
 
 // Parse a raw TXT record
-func parseTXTValue(raw string) *TXTAttrs {
+func parseTXTValue(raw string) (*TXTAttrs, error) {
 	separator := viper.GetString("txt.kv.separator")
 	equalsign := viper.GetString("txt.kv.equalsign")
 
@@ -282,25 +314,28 @@ func parseTXTValue(raw string) *TXTAttrs {
 
 	for _, item := range items {
 		kv := strings.Split(item, equalsign)
-		if len(kv[1]) > 0 {
-			// Skip keys if they are unknown or their values are empty.
-			switch kv[0] {
-			case keyOS:
-				attrs.OS = kv[1]
-			case keyEnv:
-				attrs.Env = kv[1]
-			case keyRole:
-				attrs.Role = kv[1]
-			case keySrv:
-				attrs.Srv = kv[1]
-			}
+		switch kv[0] {
+		case keyOS:
+			attrs.OS = kv[1]
+		case keyEnv:
+			attrs.Env = kv[1]
+		case keyRole:
+			attrs.Role = kv[1]
+		case keySrv:
+			attrs.Srv = kv[1]
 		}
 	}
 
-	return attrs
+	if err := validator.Validate(attrs); err != nil {
+		return attrs, errors.Wrap(err, "attribute validation error")
+	}
+
+	return attrs, nil
 }
 
 func init() {
+	log.SetOutput(os.Stderr)
+
 	// Load YAML configuration.
 	viper.SetConfigName("ansible-dns-inventory")
 	viper.SetConfigType("yaml")
@@ -308,8 +343,7 @@ func init() {
 	viper.AddConfigPath("$HOME/.ansible")
 	viper.AddConfigPath("/etc/ansible")
 
-	err := viper.ReadInConfig()
-	if err != nil {
+	if err := viper.ReadInConfig(); err != nil {
 		panic(errors.Wrap(err, "failed to read config file"))
 	}
 
@@ -331,7 +365,9 @@ func init() {
 	viper.SetDefault("txt.keys.role", "ROLE")
 	viper.SetDefault("txt.keys.srv", "SRV")
 
-	log.SetOutput(os.Stderr)
+	if err := validator.SetValidationFunc("ansiblename", validateAnsibleName); err != nil {
+		panic(errors.Wrap(err, "'ansiblename' validator initialization error"))
+	}
 }
 
 func main() {
