@@ -233,8 +233,9 @@ func getInventoryRecord(host string, domain string, server string) ([]dns.RR, er
 	} else if len(rx.Answer) == 0 {
 		return records, errors.Wrap(fmt.Errorf("not found: %s", name), "inventory record loading failed")
 	}
+	records = rx.Answer
 
-	return rx.Answer, nil
+	return records, nil
 }
 
 // Parse zone transfer results and create a list of hosts and their attributes.
@@ -245,20 +246,19 @@ func parseTXTRecords(records []dns.RR) map[string]*TXTAttrs {
 
 	for _, rr := range records {
 		var name string
+		var attrs *TXTAttrs
 
 		if notx {
 			name = strings.TrimSuffix(strings.Split(dns.Field(rr, dnsRrTxtField), separator)[0], ".")
+			attrs = parseTXTValue(strings.Split(dns.Field(rr, dnsRrTxtField), separator)[1])
 		} else {
 			name = strings.TrimSuffix(rr.Header().Name, ".")
+			attrs = parseTXTValue(dns.Field(rr, dnsRrTxtField))
 		}
 
 		_, ok := hosts[name] // First host record wins.
 		if !ok {
-			if notx {
-				hosts[name] = parseTXTValue(strings.Split(dns.Field(rr, dnsRrTxtField), separator)[1])
-			} else {
-				hosts[name] = parseTXTValue(dns.Field(rr, dnsRrTxtField))
-			}
+			hosts[name] = attrs
 		}
 	}
 
@@ -368,6 +368,7 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
+
 		fmt.Println(string(jsonInventory))
 	} else if *hostFlag {
 		fmt.Println("{}")
