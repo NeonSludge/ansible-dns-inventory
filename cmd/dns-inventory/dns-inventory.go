@@ -77,6 +77,8 @@ func validateAttribute(v interface{}, param string) error {
 		re += "\\,\\" + separator + "]*$"
 	case "list":
 		re += "\\," + "]*$"
+	default:
+		re += "]*$"
 	}
 
 	pattern, err := regexp.Compile(re)
