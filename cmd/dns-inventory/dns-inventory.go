@@ -29,13 +29,13 @@ type (
 	// Host attributes found in its TXT record.
 	TXTAttrs struct {
 		// Host operating system identifier.
-		OS string `validate:"nonzero,ansiblename"`
+		OS string `validate:"nonzero,safe"`
 		// Host environment identifier.
-		Env string `validate:"nonzero,ansiblename"`
+		Env string `validate:"nonzero,safe"`
 		// Host role identifier.
-		Role string `validate:"nonzero,ansiblename"`
+		Role string `validate:"nonzero,safe"`
 		// Host service identifier.
-		Srv string `validate:"ansiblename"`
+		Srv string `validate:"safe=srv"`
 	}
 
 	// Inventory tree node. Represents an Ansible group.
@@ -58,17 +58,27 @@ type (
 )
 
 // Validate Ansible group name segments.
-func validateAnsibleName(v interface{}, param string) error {
+func validateAttribute(v interface{}, param string) error {
 	value := reflect.ValueOf(v)
 	if value.Kind() != reflect.String {
 		return errors.New("ansiblename only validates strings")
 	}
 
 	var re string
-	separator := viper.GetString("txt.keys.separator")
-	if separator == "-" {
-		re = "^[A-Za-z0-9_]*$"
-	} else {
+	switch viper.GetString("txt.keys.separator") {
+	case "-":
+		if param == "srv" {
+			re = "^[A-Za-z0-9-]*$"
+		} else {
+			re = "^[A-Za-z0-9_]*$"
+		}
+	case "_":
+		if param == "srv" {
+			re = "^[A-Za-z0-9_]*$"
+		} else {
+			re = "^[A-Za-z0-9]*$"
+		}
+	default:
 		re = "^[A-Za-z0-9]*$"
 	}
 
@@ -365,8 +375,8 @@ func init() {
 	viper.SetDefault("txt.keys.role", "ROLE")
 	viper.SetDefault("txt.keys.srv", "SRV")
 
-	if err := validator.SetValidationFunc("ansiblename", validateAnsibleName); err != nil {
-		panic(errors.Wrap(err, "'ansiblename' validator initialization error"))
+	if err := validator.SetValidationFunc("safe", validateAttribute); err != nil {
+		panic(errors.Wrap(err, "'safe' validator initialization error"))
 	}
 }
 
