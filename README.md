@@ -41,6 +41,7 @@ The separator between the hostname and the attribute string in the no-transfer m
 | SRV  | Host service identifier(s). This will be split further using the `txt.keys.separator` to produce a hierarchy of groups. Can also be a comma-delimited list. |
 
 Key names and separators are customizable via `ansible-dns-inventory`'s config file.
+Key values are validated and can only contain numbers and letters of the Latin alphabet.
 If a host has several TXT records, the first one wins. So if you have other stuff you would like to put in there, make sure that the first TXT record returned by your DNS server for a given host is always exclusively meant for `ansible-dns-inventory`.
 
 ### Config file
