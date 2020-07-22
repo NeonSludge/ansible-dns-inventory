@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"log"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -328,6 +330,8 @@ func init() {
 	viper.SetDefault("txt.keys.env", "ENV")
 	viper.SetDefault("txt.keys.role", "ROLE")
 	viper.SetDefault("txt.keys.srv", "SRV")
+
+	log.SetOutput(os.Stderr)
 }
 
 func main() {
@@ -353,7 +357,8 @@ func main() {
 				records, err = transferZone(zone, server)
 			}
 			if err != nil {
-				panic(err)
+				log.Printf("[%s] skipping zone: %v", zone, err)
+				continue
 			}
 
 			tree.loadHosts(parseTXTRecords(records))
@@ -366,7 +371,7 @@ func main() {
 		// Marshal the map into a JSON representation of an Ansible inventory.
 		jsonInventory, err := json.Marshal(inventory)
 		if err != nil {
-			panic(err)
+			log.Fatal(err)
 		}
 
 		fmt.Println(string(jsonInventory))
