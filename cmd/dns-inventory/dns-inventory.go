@@ -413,6 +413,10 @@ func main() {
 			tree.loadHosts(parseTXTRecords(records))
 		}
 
+		if len(tree.Children) == 0 {
+			log.Fatalln("empty inventory tree")
+		}
+
 		// Export the tree into a map.
 		inventory := make(map[string]*InventoryGroup)
 		tree.exportInventory(inventory)
