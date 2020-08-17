@@ -1,6 +1,6 @@
 module github.com/NeonSludge/ansible-dns-inventory
 
-go 1.14
+go 1.15
 
 require (
 	github.com/miekg/dns v1.1.30
