@@ -1,6 +1,6 @@
 # ansible-dns-inventory
 
-![goreportcard](https://goreportcard.com/badge/github.com/NeonSludge/ansible-dns-inventory)
+[![Go Report Card](https://goreportcard.com/badge/github.com/NeonSludge/ansible-dns-inventory)](https://goreportcard.com/report/github.com/NeonSludge/ansible-dns-inventory)
 
 A [dynamic inventory](https://docs.ansible.com/ansible/latest/user_guide/intro_dynamic_inventory.html) script for Ansible that discovers hosts and groups via a DNS request and organizes them into a tree.
 
