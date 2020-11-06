@@ -3,7 +3,7 @@ dns:
   server: "127.0.0.1:53"
   # Network timeout for DNS requests. Environment variable: ADI_DNS_TIMEOUT
   timeout: "30s"
-  # DNS zone list. Environment variable: ADI_DNS_ZONES
+  # DNS zone list. Environment variable: ADI_DNS_ZONES (space-separated list)
   zones:
     - server.local.
   # No-transfer mode configuration.
