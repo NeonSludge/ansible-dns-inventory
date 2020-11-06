@@ -371,6 +371,7 @@ func init() {
 
 	// Setup environment variables handling.
 	viper.SetEnvPrefix("adi")
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
 
 	// Set defaults.
