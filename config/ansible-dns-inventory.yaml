@@ -1,36 +1,36 @@
 dns:
-  # DNS server address.
+  # DNS server address. Environment variable: ADI_DNS_SERVER
   server: "127.0.0.1:53"
-  # Network timeout for DNS requests.
+  # Network timeout for DNS requests. Environment variable: ADI_DNS_TIMEOUT
   timeout: "30s"
-  # DNS zone list.
+  # DNS zone list. Environment variable: ADI_DNS_ZONES
   zones:
     - server.local.
   # No-transfer mode configuration.
   notransfer:
-    # Enable no-transfer data retrieval mode.
+    # Enable no-transfer data retrieval mode. Environment variable: ADI_DNS_NOTRANSFER_ENABLED
     enabled: false
-    # A host whose TXT records contain inventory data.
+    # A host whose TXT records contain inventory data. Environment variable: ADI_DNS_NOTRANSFER_HOST
     host: "ansible-dns-inventory"
-    # Separator between a hostname and an attribute string in a TXT record.
+    # Separator between a hostname and an attribute string in a TXT record. Environment variable: ADI_DNS_NOTRANSFER_SEPARATOR
     separator: ":"
 # TXT record parsing configuration.
 txt:
   # Key/value pair parsing configuration.
   kv:
-    # Separator between k/v pairs found in TXT records.
+    # Separator between k/v pairs found in TXT records. Environment variable: ADI_TXT_KV_SEPARATOR
     separator: ";"
-    # Separator between a key and a value.
+    # Separator between a key and a value. Environment variable: ADI_TXT_KV_EQUALSIGN
     equalsign: "="
   # Host attribute parsing configuration
   keys:
-    # Separator between elements of an Ansible group name.
+    # Separator between elements of an Ansible group name. Environment variable: ADI_TXT_KEYS_SEPARATOR
     separator: "_"
-    # Key name of the attribute containing the host operating system identifier.
+    # Key name of the attribute containing the host operating system identifier. Environment variable: ADI_TXT_KEYS_OS
     os: "OS"
-    # Key name of the attribute containing the host environment identifier.
+    # Key name of the attribute containing the host environment identifier. Environment variable: ADI_TXT_KEYS_ENV
     env: "ENV"
-    # Key name of the attribute containing the host role identifier.
+    # Key name of the attribute containing the host role identifier. Environment variable: ADI_TXT_KEYS_ROLE
     role: "ROLE"
-    # Key name of the attribute containing the host service identifier.
+    # Key name of the attribute containing the host service identifier. Environment variable: ADI_TXT_KEYS_SRV
     srv: "SRV"

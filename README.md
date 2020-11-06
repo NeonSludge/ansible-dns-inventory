@@ -48,13 +48,20 @@ If a host has several TXT records, the first one wins. So if you have other stuf
 
 ### Config file
 
-`ansible-dns-inventory` uses a YAML configuration file. It looks for an `ansible-dns-inventory.yaml` file inside these directories (in this specific order):
+`ansible-dns-inventory` can use a YAML configuration file, a set of environment variables or both as its configuration source.
+
+It will try to load the file specified in the `ADI_CONFIG_FILE` environment variable if it is defined.
+If this variable is not defined or has an empty value, it looks for an `ansible-dns-inventory.yaml` file inside these directories (in this specific order):
 
 * `.` (current working directory)
 * `~/.ansible/`
 * `/etc/ansible/`
 
-There is a [template](config/ansible-dns-inventory.yaml) in this repository that has descriptions and default values for all available parameters.
+`ansible-dns-inventory` will panic if a configuration file was found but there was a problem reading it.
+If no configuration file was found, it will fall back to using default values and environment variables.
+
+Every parameter can also be overriden by a corresponding environment variable.
+There is a [template](config/ansible-dns-inventory.yaml) in this repository that lists descriptions, environment variable names and default values for all available parameters.
 
 #### Example of a config file
 ```

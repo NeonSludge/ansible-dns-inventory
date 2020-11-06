@@ -350,15 +350,28 @@ func init() {
 	log.SetOutput(os.Stderr)
 
 	// Load YAML configuration.
-	viper.SetConfigName("ansible-dns-inventory")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath(".")
-	viper.AddConfigPath("$HOME/.ansible")
-	viper.AddConfigPath("/etc/ansible")
+	path, ok := os.LookupEnv("ADI_CONFIG_FILE")
+	if ok {
+		// Load a specific config file.
+		viper.SetConfigFile(path)
+	} else {
+		// Try to find the config file in standard loctions.
+		viper.SetConfigName("ansible-dns-inventory")
+		viper.SetConfigType("yaml")
+		viper.AddConfigPath(".")
+		viper.AddConfigPath("$HOME/.ansible")
+		viper.AddConfigPath("/etc/ansible")
+	}
 
 	if err := viper.ReadInConfig(); err != nil {
-		panic(errors.Wrap(err, "failed to read config file"))
+		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+			panic(errors.Wrap(err, "failed to read config file"))
+		}
 	}
+
+	// Setup environment variables handling.
+	viper.SetEnvPrefix("adi")
+	viper.AutomaticEnv()
 
 	// Set defaults.
 	viper.SetDefault("dns.server", "127.0.0.1:53")
