@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"reflect"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -26,6 +28,22 @@ const (
 )
 
 type (
+	// DNS server configuration.
+	DNSServerConfig struct {
+		// DNS server address.
+		Address string
+		// Network timeout for DNS requests.
+		Timeout string
+		// DNS zone list.
+		Zones []string
+		// Enable no-transfer data retrieval mode.
+		NoTx bool
+		// A host whose TXT records contain inventory data.
+		NoTxHost string
+		// Separator between a hostname and an attribute string in a TXT record.
+		NoTxSeparator string
+	}
+
 	// Host attributes found in its TXT record.
 	TXTAttrs struct {
 		// Host operating system identifier.
@@ -42,6 +60,8 @@ type (
 	TreeNode struct {
 		// Group name.
 		Name string
+		// Group Parent
+		Parent *TreeNode
 		// Group children.
 		Children []*TreeNode
 		// Hosts belonging to this group.
@@ -56,6 +76,16 @@ type (
 		Hosts []string `json:"hosts,omitempty"`
 	}
 )
+
+// Load DNS server configuration.
+func (c *DNSServerConfig) load() {
+	c.Address = viper.GetString("dns.server")
+	c.Timeout = viper.GetString("dns.timeout")
+	c.Zones = viper.GetStringSlice("dns.zones")
+	c.NoTx = viper.GetBool("dns.notransfer.enabled")
+	c.NoTxHost = viper.GetString("dns.notransfer.host")
+	c.NoTxSeparator = viper.GetString("dns.notransfer.separator")
+}
 
 // Validate host attributes.
 func validateAttribute(v interface{}, param string) error {
@@ -111,15 +141,15 @@ func (n *TreeNode) loadHosts(hosts map[string]*TXTAttrs) {
 					// Add the environment and role groups
 					roleGroup := fmt.Sprintf("%s%s%s", env, separator, role)
 
-					n.addGroup(n.Name, env)
-					n.addGroup(env, roleGroup)
+					n.addNode(n.Name, env)
+					n.addNode(env, roleGroup)
 
 					// Add service groups.
 					srvGroup := roleGroup
 					for i, s := range strings.Split(srv, separator) {
 						if len(s) > 0 && (i == 0 || env != "all" || attrs.Env == "all") {
 							group := fmt.Sprintf("%s%s%s", srvGroup, separator, s)
-							n.addGroup(srvGroup, group)
+							n.addNode(srvGroup, group)
 							srvGroup = group
 						}
 					}
@@ -132,15 +162,15 @@ func (n *TreeNode) loadHosts(hosts map[string]*TXTAttrs) {
 			// Add OS-based groups.
 			hostGroup := fmt.Sprintf("%s%shost", env, separator)
 			osGroup := fmt.Sprintf("%s%shost%s%s", env, separator, separator, attrs.OS)
-			n.addGroup(env, hostGroup)
-			n.addGroup(hostGroup, osGroup)
+			n.addNode(env, hostGroup)
+			n.addNode(hostGroup, osGroup)
 			n.addHost(osGroup, host)
 		}
 	}
 }
 
 // Find an inventory tree node by its name, starting from this node.
-func (n *TreeNode) findByName(name string) *TreeNode {
+func (n *TreeNode) findNodeByName(name string) *TreeNode {
 	if n.Name == name {
 		// Node found.
 		return n
@@ -149,7 +179,7 @@ func (n *TreeNode) findByName(name string) *TreeNode {
 	// Process other nodes recursively.
 	if len(n.Children) > 0 {
 		for _, child := range n.Children {
-			if g := child.findByName(name); g != nil {
+			if g := child.findNodeByName(name); g != nil {
 				// Node found.
 				return g
 			}
@@ -160,17 +190,33 @@ func (n *TreeNode) findByName(name string) *TreeNode {
 	return nil
 }
 
+// Collect all ancestor nodes, starting from this node.
+func (n *TreeNode) collectAncestors() []*TreeNode {
+	parents := make([]*TreeNode, 0)
+
+	if len(n.Parent.Name) > 0 {
+		// Add our parent.
+		parents = append(parents, n.Parent)
+
+		// Add our ancestors.
+		collected := n.Parent.collectAncestors()
+		parents = append(parents, collected...)
+	}
+
+	return parents
+}
+
 // Add a group to the inventory tree as a child of the specified parent.
-func (n *TreeNode) addGroup(parent string, name string) {
+func (n *TreeNode) addNode(parent string, name string) {
 	if parent != name {
-		if g := n.findByName(name); g == nil {
+		if g := n.findNodeByName(name); g == nil {
 			// Add the group only if it doesn't exist.
-			if pg := n.findByName(parent); pg != nil {
+			if pg := n.findNodeByName(parent); pg != nil {
 				// If the parent group is found, add the group as a child.
-				pg.Children = append(pg.Children, &TreeNode{Name: name, Hosts: make(map[string]bool)})
+				pg.Children = append(pg.Children, &TreeNode{Name: name, Parent: pg, Hosts: make(map[string]bool)})
 			} else {
 				// If the parent group is not found, add the group as a child to the current node.
-				n.Children = append(n.Children, &TreeNode{Name: name, Hosts: make(map[string]bool)})
+				n.Children = append(n.Children, &TreeNode{Name: name, Parent: n, Hosts: make(map[string]bool)})
 			}
 		}
 	}
@@ -178,7 +224,7 @@ func (n *TreeNode) addGroup(parent string, name string) {
 
 // Add a host to a group in the inventory tree.
 func (n *TreeNode) addHost(group string, name string) {
-	if g := n.findByName(group); g != nil {
+	if g := n.findNodeByName(group); g != nil {
 		// If the group is found, add the host.
 		g.Hosts[name] = true
 	} else {
@@ -214,19 +260,103 @@ func (n *TreeNode) exportInventory(inventory map[string]*InventoryGroup) {
 	}
 }
 
-// Perform a DNS zone transfer (AXFR), return the results.
-func transferZone(domain string, server string) ([]dns.RR, error) {
-	records := make([]dns.RR, 0)
-	notxName := viper.GetString("dns.notransfer.host")
+// Export the inventory to a map ready to be marshalled into a YAML file that maps hosts to groups they belong to, starting from this node.
+func (n *TreeNode) exportHosts(hosts map[string][]string) {
+	// Collect a list of unique group names for every host owned by this node.
+	for host := range n.Hosts {
+		collected := make(map[string]bool)
+		result := make([]string, 0)
 
-	timeout, err := time.ParseDuration(viper.GetString("dns.timeout"))
+		// Add current node name.
+		collected[n.Name] = true
+
+		// Add all parent node names.
+		parents := n.collectAncestors()
+		for _, parent := range parents {
+			collected[parent.Name] = true
+		}
+
+		// Get current list for host.
+		current := hosts[host]
+		for _, name := range current {
+			collected[name] = true
+		}
+
+		// Compile the final result.
+		for name := range collected {
+			result = append(result, name)
+		}
+
+		hosts[host] = result
+	}
+
+	// Process other nodes recursively.
+	if len(n.Children) > 0 {
+		for _, child := range n.Children {
+			child.exportHosts(hosts)
+		}
+	}
+}
+
+// Convert a hosts map into newline-delimited YAML.
+func hostsToNDYAML(hosts map[string][]string, mode string) ([]byte, error) {
+	buf := new(bytes.Buffer)
+
+	for host, groups := range hosts {
+		var groupsYAML string
+
+		switch mode {
+		case "list":
+			groups = Map(groups, strconv.Quote)
+			groupsYAML = fmt.Sprintf("[%s]", strings.Join(groups, ","))
+		default:
+			groupsYAML = fmt.Sprintf("\"%s\"", strings.Join(groups, ","))
+		}
+		if _, err := buf.WriteString(fmt.Sprintf("\"%s\": %s\n", host, groupsYAML)); err != nil {
+			return buf.Bytes(), err
+		}
+	}
+
+	return buf.Bytes(), nil
+}
+
+// Acquire DNS records from a remote DNS server.
+func getTXTRecords(c *DNSServerConfig) []dns.RR {
+	records := make([]dns.RR, 0)
+
+	for _, zone := range c.Zones {
+		var rrs []dns.RR
+		var err error
+
+		if c.NoTx {
+			rrs, err = getInventoryRecord(c.Address, zone, c.NoTxHost, c.Timeout)
+		} else {
+			rrs, err = transferZone(c.Address, zone, c.NoTxHost, c.Timeout)
+		}
+
+		if err != nil {
+			log.Printf("[%s] skipping zone: %v", zone, err)
+			continue
+		}
+
+		records = append(records, rrs...)
+	}
+
+	return records
+}
+
+// Perform a DNS zone transfer (AXFR), return the results.
+func transferZone(server string, domain string, notxName string, timeout string) ([]dns.RR, error) {
+	records := make([]dns.RR, 0)
+
+	t, err := time.ParseDuration(timeout)
 	if err != nil {
 		return records, errors.Wrap(err, "zone transfer failed")
 	}
 	tx := &dns.Transfer{
-		DialTimeout:  timeout,
-		ReadTimeout:  timeout,
-		WriteTimeout: timeout,
+		DialTimeout:  t,
+		ReadTimeout:  t,
+		WriteTimeout: t,
 	}
 
 	msg := new(dns.Msg)
@@ -253,16 +383,17 @@ func transferZone(domain string, server string) ([]dns.RR, error) {
 	return records, nil
 }
 
-func getInventoryRecord(host string, domain string, server string) ([]dns.RR, error) {
+// Acquire TXT records of a special host (no-transfer mode).
+func getInventoryRecord(server string, domain string, host string, timeout string) ([]dns.RR, error) {
 	records := make([]dns.RR, 0)
 	name := fmt.Sprintf("%s.%s", host, dns.Fqdn(domain))
 
-	timeout, err := time.ParseDuration(viper.GetString("dns.timeout"))
+	t, err := time.ParseDuration(timeout)
 	if err != nil {
 		return records, errors.Wrap(err, "inventory record loading failed")
 	}
 	client := &dns.Client{
-		Timeout: timeout,
+		Timeout: t,
 	}
 
 	msg := new(dns.Msg)
@@ -280,10 +411,8 @@ func getInventoryRecord(host string, domain string, server string) ([]dns.RR, er
 }
 
 // Parse zone transfer results and create a list of hosts and their attributes.
-func parseTXTRecords(records []dns.RR) map[string]*TXTAttrs {
+func parseTXTRecords(records []dns.RR, notx bool, notxSplit string) map[string]*TXTAttrs {
 	hosts := make(map[string]*TXTAttrs)
-	notx := viper.GetBool("dns.notransfer.enabled")
-	separator := viper.GetString("dns.notransfer.separator")
 
 	for _, rr := range records {
 		var name string
@@ -291,8 +420,8 @@ func parseTXTRecords(records []dns.RR) map[string]*TXTAttrs {
 		var err error
 
 		if notx {
-			name = strings.TrimSuffix(strings.Split(dns.Field(rr, dnsRrTxtField), separator)[0], ".")
-			attrs, err = parseAttributes(strings.Split(dns.Field(rr, dnsRrTxtField), separator)[1])
+			name = strings.TrimSuffix(strings.Split(dns.Field(rr, dnsRrTxtField), notxSplit)[0], ".")
+			attrs, err = parseAttributes(strings.Split(dns.Field(rr, dnsRrTxtField), notxSplit)[1])
 		} else {
 			name = strings.TrimSuffix(rr.Header().Name, ".")
 			attrs, err = parseAttributes(dns.Field(rr, dnsRrTxtField))
@@ -344,6 +473,17 @@ func parseAttributes(raw string) (*TXTAttrs, error) {
 	}
 
 	return attrs, nil
+}
+
+// Apply a function to all elements in a slice of strings.
+func Map(vs []string, f func(string) string) []string {
+	vsmap := make([]string, len(vs))
+
+	for i, v := range vs {
+		vsmap[i] = f(v)
+	}
+
+	return vsmap
 }
 
 func init() {
@@ -400,55 +540,64 @@ func init() {
 
 func main() {
 	listFlag := flag.Bool("list", false, "list hosts")
+	exportFlag := flag.Bool("export", false, "export hosts and the groups they belong to")
+	formatFlag := flag.String("format", "yaml", "export format")
 	hostFlag := flag.Bool("host", false, "a stub for Ansible")
 	flag.Parse()
 
-	if *listFlag {
-		server := viper.GetString("dns.server")
-		notx := viper.GetBool("dns.notransfer.enabled")
-		notxName := viper.GetString("dns.notransfer.host")
+	if *listFlag || *exportFlag {
+		// Initialize and load DNS server configuration.
+		config := &DNSServerConfig{}
+		config.load()
 
-		// Transfer DNS zones.
-		records := make([]dns.RR, 0)
-		for _, zone := range viper.GetStringSlice("dns.zones") {
-			var rrs []dns.RR
-			var err error
-
-			if notx {
-				rrs, err = getInventoryRecord(notxName, zone, server)
-			} else {
-				rrs, err = transferZone(zone, server)
-			}
-
-			if err != nil {
-				log.Printf("[%s] skipping zone: %v", zone, err)
-				continue
-			}
-
-			records = append(records, rrs...)
-		}
-
+		// Acquire TXT records.
+		records := getTXTRecords(config)
 		if len(records) == 0 {
 			log.Fatal("empty TXT records list")
 		}
 
 		// Initialize the inventory tree.
-		tree := &TreeNode{Name: "all", Hosts: make(map[string]bool)}
+		tree := &TreeNode{Name: "all", Parent: &TreeNode{}, Children: make([]*TreeNode, 0), Hosts: make(map[string]bool)}
 
 		// Load DNS records into the inventory tree.
-		tree.loadHosts(parseTXTRecords(records))
+		tree.loadHosts(parseTXTRecords(records, config.NoTx, config.NoTxSeparator))
 
-		// Export the inventory tree into a map.
-		inventory := make(map[string]*InventoryGroup)
-		tree.exportInventory(inventory)
+		if !*exportFlag {
+			// Export the inventory tree into a map.
+			inventory := make(map[string]*InventoryGroup)
+			tree.exportInventory(inventory)
 
-		// Marshal the map into a JSON representation of an Ansible inventory.
-		jsonInventory, err := json.Marshal(inventory)
-		if err != nil {
-			log.Fatal(err)
+			// Marshal the map into a JSON representation of an Ansible inventory.
+			jsonInventory, err := json.Marshal(inventory)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			fmt.Println(string(jsonInventory))
+		} else {
+			// Export the inventory tree into a map.
+			hosts := make(map[string][]string)
+			tree.exportHosts(hosts)
+
+			var export []byte
+			var err error
+			switch *formatFlag {
+			case "json":
+				export, err = json.Marshal(hosts)
+			case "yaml-csv":
+				export, err = hostsToNDYAML(hosts, "csv")
+			case "yaml-list":
+				export, err = hostsToNDYAML(hosts, "list")
+			default:
+				export, err = hostsToNDYAML(hosts, "csv")
+			}
+
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			fmt.Println(string(export))
 		}
-
-		fmt.Println(string(jsonInventory))
 	} else if *hostFlag {
 		fmt.Println("{}")
 	}
