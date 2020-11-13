@@ -139,17 +139,11 @@ func (n *TreeNode) importHosts(hosts map[string]*TXTAttrs) {
 				// A host can have several services.
 				for _, srv := range strings.Split(attrs.Srv, ",") {
 					// Insert the first node into the tree.
-					envNode := n.getNodeByName(env)
-					if envNode == nil {
-						envNode = n.insertNode(n.Name, env)
-					}
+					envNode := n.addChild(env)
 
+					// Add
 					roleGroup := fmt.Sprintf("%s%s%s", env, separator, role)
-					roleGroupNode := envNode.getNodeByName(roleGroup)
-					if roleGroupNode == nil {
-						roleGroupNode = &TreeNode{Name: roleGroup, Parent: envNode, Hosts: make(map[string]bool)}
-						envNode.addChild(roleGroupNode)
-					}
+					roleGroupNode := envNode.addChild(roleGroup)
 
 					// Add service groups.
 					srvGroup := roleGroup
@@ -157,13 +151,7 @@ func (n *TreeNode) importHosts(hosts map[string]*TXTAttrs) {
 					for i, s := range strings.Split(srv, separator) {
 						if len(s) > 0 && (i == 0 || env != "all" || attrs.Env == "all") {
 							group := fmt.Sprintf("%s%s%s", srvGroup, separator, s)
-
-							node := srvGroupNode.getNodeByName(group)
-							if node == nil {
-								node = &TreeNode{Name: group, Parent: srvGroupNode, Hosts: make(map[string]bool)}
-								srvGroupNode.addChild(node)
-							}
-
+							node := srvGroupNode.addChild(group)
 							srvGroup = group
 							srvGroupNode = node
 						}
@@ -175,45 +163,14 @@ func (n *TreeNode) importHosts(hosts map[string]*TXTAttrs) {
 					// Add OS-based groups.
 					hostGroup := fmt.Sprintf("%s%shost", env, separator)
 					osGroup := fmt.Sprintf("%s%shost%s%s", env, separator, separator, attrs.OS)
-
-					hostGroupNode := envNode.getNodeByName(hostGroup)
-					if hostGroupNode == nil {
-						hostGroupNode = &TreeNode{Name: hostGroup, Parent: envNode, Hosts: make(map[string]bool)}
-						envNode.addChild(hostGroupNode)
-					}
-
-					osGroupNode := hostGroupNode.getNodeByName(osGroup)
-					if osGroupNode == nil {
-						osGroupNode = &TreeNode{Name: osGroup, Parent: hostGroupNode, Hosts: make(map[string]bool)}
-						hostGroupNode.addChild(osGroupNode)
-					}
+					hostGroupNode := envNode.addChild(hostGroup)
+					osGroupNode := hostGroupNode.addChild(osGroup)
 
 					osGroupNode.addHost(host)
 				}
 			}
 		}
 	}
-}
-
-// Find an inventory tree node by its name, starting from this node.
-func (n *TreeNode) getNodeByName(name string) *TreeNode {
-	if n.Name == name {
-		// Node found.
-		return n
-	}
-
-	// Process other nodes recursively.
-	if len(n.Children) > 0 {
-		for _, c := range n.Children {
-			if node := c.getNodeByName(name); node != nil {
-				// Node found.
-				return node
-			}
-		}
-	}
-
-	// Node not found.
-	return nil
 }
 
 // Collect all ancestor nodes, starting from this node.
@@ -233,49 +190,21 @@ func (n *TreeNode) getAncestors() []*TreeNode {
 }
 
 // Add a child of this node if it doesn't exist.
-func (n *TreeNode) addChild(node *TreeNode) {
+func (n *TreeNode) addChild(name string) *TreeNode {
 	for _, c := range n.Children {
-		if c.Name == node.Name {
-			return
+		if c.Name == name {
+			return c
 		}
 	}
+
+	node := &TreeNode{Name: name, Parent: n, Hosts: make(map[string]bool)}
 	n.Children = append(n.Children, node)
+
+	return node
 }
 
 func (n *TreeNode) addHost(host string) {
 	n.Hosts[host] = true
-}
-
-// Add a node to the inventory tree as a child of the specified parent.
-func (n *TreeNode) insertNode(parent string, child string) *TreeNode {
-	if parent != child {
-		var node *TreeNode
-
-		if pn := n.getNodeByName(parent); pn != nil {
-			// Parent is found, add node as its child.
-			node = &TreeNode{Name: child, Parent: pn, Hosts: make(map[string]bool)}
-			pn.addChild(node)
-		} else {
-			// Parent group not found, add node as a child of the current node.
-			node = &TreeNode{Name: child, Parent: pn, Hosts: make(map[string]bool)}
-			n.addChild(node)
-		}
-
-		return node
-	}
-
-	return n
-}
-
-// Add a host to a node in the inventory tree.
-func (n *TreeNode) insertHost(node string, host string) {
-	if pn := n.getNodeByName(node); pn != nil {
-		// Node found, add host.
-		pn.addHost(host)
-	} else {
-		// Node not found, add host to the current node.
-		n.addHost(host)
-	}
 }
 
 // Export the inventory tree to a map ready to be marshalled into a JSON representation of an Ansible inventory, starting from this node.
