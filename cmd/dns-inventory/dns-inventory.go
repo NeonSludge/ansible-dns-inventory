@@ -25,6 +25,8 @@ const (
 	dnsRrTxtType uint16 = 16
 	// Number of the field that contains the TXT record value.
 	dnsRrTxtField int = 1
+	// Ansible root group name.
+	ansibleRootGroup string = "all"
 )
 
 type (
@@ -138,18 +140,18 @@ func (n *TreeNode) importHosts(hosts map[string]*TXTAttrs) {
 			for _, role := range strings.Split(attrs.Role, ",") {
 				// A host can have several services.
 				for _, srv := range strings.Split(attrs.Srv, ",") {
-					// Insert the first node into the tree.
+					// Environment: root>environment
 					envNode := n.addChild(env)
 
-					// Add
+					// Role: root>environment>role
 					roleGroup := fmt.Sprintf("%s%s%s", env, separator, role)
 					roleGroupNode := envNode.addChild(roleGroup)
 
-					// Add service groups.
+					// Service: root>environment>role>service[1]>...>service[N].
 					srvGroup := roleGroup
 					srvGroupNode := roleGroupNode
 					for i, s := range strings.Split(srv, separator) {
-						if len(s) > 0 && (i == 0 || env != "all" || attrs.Env == "all") {
+						if len(s) > 0 && (i == 0 || env != ansibleRootGroup || attrs.Env == ansibleRootGroup) {
 							group := fmt.Sprintf("%s%s%s", srvGroup, separator, s)
 							node := srvGroupNode.addChild(group)
 							srvGroup = group
@@ -157,15 +159,18 @@ func (n *TreeNode) importHosts(hosts map[string]*TXTAttrs) {
 						}
 					}
 
-					// Add the host itself to the last service group.
+					// The last service group holds the host.
 					srvGroupNode.addHost(host)
 
-					// Add OS-based groups.
+					// Host: root>environment>host
 					hostGroup := fmt.Sprintf("%s%shost", env, separator)
-					osGroup := fmt.Sprintf("%s%shost%s%s", env, separator, separator, attrs.OS)
 					hostGroupNode := envNode.addChild(hostGroup)
+
+					// OS: root>environment>host>os
+					osGroup := fmt.Sprintf("%s%shost%s%s", env, separator, separator, attrs.OS)
 					osGroupNode := hostGroupNode.addChild(osGroup)
 
+					// The OS group holds the host.
 					osGroupNode.addHost(host)
 				}
 			}
@@ -191,6 +196,10 @@ func (n *TreeNode) getAncestors() []*TreeNode {
 
 // Add a child of this node if it doesn't exist.
 func (n *TreeNode) addChild(name string) *TreeNode {
+	if n.Name == name {
+		return n
+	}
+
 	for _, c := range n.Children {
 		if c.Name == name {
 			return c
@@ -531,7 +540,7 @@ func main() {
 		}
 
 		// Initialize the inventory tree.
-		tree := &TreeNode{Name: "all", Parent: &TreeNode{}, Children: make([]*TreeNode, 0), Hosts: make(map[string]bool)}
+		tree := &TreeNode{Name: ansibleRootGroup, Parent: &TreeNode{}, Children: make([]*TreeNode, 0), Hosts: make(map[string]bool)}
 
 		// Load DNS records into the inventory tree.
 		tree.importHosts(parseTXTRecords(records, config.NoTx, config.NoTxSeparator))
