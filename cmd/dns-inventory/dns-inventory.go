@@ -178,13 +178,13 @@ func (n *TreeNode) importHosts(hosts map[string]*TXTAttrs) {
 
 					hostGroupNode := envNode.getNodeByName(hostGroup)
 					if hostGroupNode == nil {
-						hostGroupNode := &TreeNode{Name: hostGroup, Parent: envNode, Hosts: make(map[string]bool)}
+						hostGroupNode = &TreeNode{Name: hostGroup, Parent: envNode, Hosts: make(map[string]bool)}
 						envNode.addChild(hostGroupNode)
 					}
 
 					osGroupNode := hostGroupNode.getNodeByName(osGroup)
 					if osGroupNode == nil {
-						osGroupNode := &TreeNode{Name: osGroup, Parent: hostGroupNode, Hosts: make(map[string]bool)}
+						osGroupNode = &TreeNode{Name: osGroup, Parent: hostGroupNode, Hosts: make(map[string]bool)}
 						hostGroupNode.addChild(osGroupNode)
 					}
 
