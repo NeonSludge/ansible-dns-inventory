@@ -125,20 +125,21 @@ func validateAttr(v interface{}, param string) error {
 	return nil
 }
 
-// Load a list of hosts into the inventory tree, starting from this node.
+// Load a list of hosts into the inventory tree, using this node as root.
 func (n *TreeNode) importHosts(hosts map[string]*TXTAttrs) {
 	separator := viper.GetString("txt.keys.separator")
 
 	for host, attrs := range hosts {
-		// Automatically create pseudo-groups for the "all" environment.
+		// Create an environment list for this host. Add the root environment, if necessary.
 		envs := make(map[string]bool)
 		envs[attrs.Env] = true
-		envs["all"] = true
+		envs[ansibleRootGroup] = true
 
+		// Iterate the environments.
 		for env := range envs {
-			// A host can have several roles.
+			// Iterate the roles.
 			for _, role := range strings.Split(attrs.Role, ",") {
-				// A host can have several services.
+				// Iterate the services.
 				for _, srv := range strings.Split(attrs.Srv, ",") {
 					// Environment: root>environment
 					envNode := n.addChild(env)
@@ -163,12 +164,10 @@ func (n *TreeNode) importHosts(hosts map[string]*TXTAttrs) {
 					srvGroupNode.addHost(host)
 
 					// Host: root>environment>host
-					hostGroup := fmt.Sprintf("%s%shost", env, separator)
-					hostGroupNode := envNode.addChild(hostGroup)
+					hostGroupNode := envNode.addChild(fmt.Sprintf("%s%shost", env, separator))
 
 					// OS: root>environment>host>os
-					osGroup := fmt.Sprintf("%s%shost%s%s", env, separator, separator, attrs.OS)
-					osGroupNode := hostGroupNode.addChild(osGroup)
+					osGroupNode := hostGroupNode.addChild(fmt.Sprintf("%s%shost%s%s", env, separator, separator, attrs.OS))
 
 					// The OS group holds the host.
 					osGroupNode.addHost(host)
