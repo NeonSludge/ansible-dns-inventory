@@ -139,43 +139,56 @@ func (n *TreeNode) importHosts(hosts map[string]*TXTAttrs) {
 				// A host can have several services.
 				for _, srv := range strings.Split(attrs.Srv, ",") {
 					// Insert the first node into the tree.
-					envNode, ok := n.insertNode(n.Name, env)
-					if ok {
-						roleGroup := fmt.Sprintf("%s%s%s", env, separator, role)
-						roleGroupNode := &TreeNode{Name: roleGroup, Parent: envNode, Hosts: make(map[string]bool)}
+					envNode := n.getNodeByName(env)
+					if envNode == nil {
+						envNode = n.insertNode(n.Name, env)
+					}
 
+					roleGroup := fmt.Sprintf("%s%s%s", env, separator, role)
+					roleGroupNode := envNode.getNodeByName(roleGroup)
+					if roleGroupNode == nil {
+						roleGroupNode = &TreeNode{Name: roleGroup, Parent: envNode, Hosts: make(map[string]bool)}
 						envNode.addChild(roleGroupNode)
+					}
 
-						// Add service groups.
-						srvGroup := roleGroup
-						srvGroupNode := roleGroupNode
-						for i, s := range strings.Split(srv, separator) {
-							if len(s) > 0 && (i == 0 || env != "all" || attrs.Env == "all") {
-								group := fmt.Sprintf("%s%s%s", srvGroup, separator, s)
-								node := &TreeNode{Name: group, Parent: srvGroupNode, Hosts: make(map[string]bool)}
+					// Add service groups.
+					srvGroup := roleGroup
+					srvGroupNode := roleGroupNode
+					for i, s := range strings.Split(srv, separator) {
+						if len(s) > 0 && (i == 0 || env != "all" || attrs.Env == "all") {
+							group := fmt.Sprintf("%s%s%s", srvGroup, separator, s)
 
+							node := srvGroupNode.getNodeByName(group)
+							if node == nil {
+								node = &TreeNode{Name: group, Parent: srvGroupNode, Hosts: make(map[string]bool)}
 								srvGroupNode.addChild(node)
-
-								srvGroup = group
-								srvGroupNode = node
 							}
+
+							srvGroup = group
+							srvGroupNode = node
 						}
+					}
 
-						// Add the host itself to the last service group.
-						srvGroupNode.addHost(host)
+					// Add the host itself to the last service group.
+					srvGroupNode.addHost(host)
 
-						// Add OS-based groups.
-						hostGroup := fmt.Sprintf("%s%shost", env, separator)
-						osGroup := fmt.Sprintf("%s%shost%s%s", env, separator, separator, attrs.OS)
+					// Add OS-based groups.
+					hostGroup := fmt.Sprintf("%s%shost", env, separator)
+					osGroup := fmt.Sprintf("%s%shost%s%s", env, separator, separator, attrs.OS)
 
+					hostGroupNode := envNode.getNodeByName(hostGroup)
+					if hostGroupNode == nil {
 						hostGroupNode := &TreeNode{Name: hostGroup, Parent: envNode, Hosts: make(map[string]bool)}
 						envNode.addChild(hostGroupNode)
+					}
 
+					osGroupNode := hostGroupNode.getNodeByName(osGroup)
+					if osGroupNode == nil {
 						osGroupNode := &TreeNode{Name: osGroup, Parent: hostGroupNode, Hosts: make(map[string]bool)}
 						hostGroupNode.addChild(osGroupNode)
-
-						osGroupNode.addHost(host)
 					}
+
+					osGroupNode.addHost(host)
 				}
 			}
 		}
@@ -234,7 +247,7 @@ func (n *TreeNode) addHost(host string) {
 }
 
 // Add a node to the inventory tree as a child of the specified parent.
-func (n *TreeNode) insertNode(parent string, child string) (*TreeNode, bool) {
+func (n *TreeNode) insertNode(parent string, child string) *TreeNode {
 	if parent != child {
 		var node *TreeNode
 
@@ -248,10 +261,10 @@ func (n *TreeNode) insertNode(parent string, child string) (*TreeNode, bool) {
 			n.addChild(node)
 		}
 
-		return node, true
+		return node
 	}
 
-	return nil, false
+	return n
 }
 
 // Add a host to a node in the inventory tree.
