@@ -88,7 +88,7 @@ func (c *DNSServerConfig) load() {
 }
 
 // Validate host attributes.
-func validateAttribute(v interface{}, param string) error {
+func validateAttr(v interface{}, param string) error {
 	value := reflect.ValueOf(v)
 	if value.Kind() != reflect.String {
 		return errors.New("ansiblename only validates strings")
@@ -124,7 +124,7 @@ func validateAttribute(v interface{}, param string) error {
 }
 
 // Load a list of hosts into the inventory tree, starting from this node.
-func (n *TreeNode) loadHosts(hosts map[string]*TXTAttrs) {
+func (n *TreeNode) importHosts(hosts map[string]*TXTAttrs) {
 	separator := viper.GetString("txt.keys.separator")
 
 	for host, attrs := range hosts {
@@ -141,36 +141,36 @@ func (n *TreeNode) loadHosts(hosts map[string]*TXTAttrs) {
 					// Add the environment and role groups
 					roleGroup := fmt.Sprintf("%s%s%s", env, separator, role)
 
-					n.addNode(n.Name, env)
-					n.addNode(env, roleGroup)
+					n.appendNode(n.Name, env)
+					n.appendNode(env, roleGroup)
 
 					// Add service groups.
 					srvGroup := roleGroup
 					for i, s := range strings.Split(srv, separator) {
 						if len(s) > 0 && (i == 0 || env != "all" || attrs.Env == "all") {
 							group := fmt.Sprintf("%s%s%s", srvGroup, separator, s)
-							n.addNode(srvGroup, group)
+							n.appendNode(srvGroup, group)
 							srvGroup = group
 						}
 					}
 
 					// Add the host itself to the last service group.
-					n.addHost(srvGroup, host)
+					n.appendHost(srvGroup, host)
 				}
 			}
 
 			// Add OS-based groups.
 			hostGroup := fmt.Sprintf("%s%shost", env, separator)
 			osGroup := fmt.Sprintf("%s%shost%s%s", env, separator, separator, attrs.OS)
-			n.addNode(env, hostGroup)
-			n.addNode(hostGroup, osGroup)
-			n.addHost(osGroup, host)
+			n.appendNode(env, hostGroup)
+			n.appendNode(hostGroup, osGroup)
+			n.appendHost(osGroup, host)
 		}
 	}
 }
 
 // Find an inventory tree node by its name, starting from this node.
-func (n *TreeNode) findNodeByName(name string) *TreeNode {
+func (n *TreeNode) getNodeByName(name string) *TreeNode {
 	if n.Name == name {
 		// Node found.
 		return n
@@ -178,10 +178,10 @@ func (n *TreeNode) findNodeByName(name string) *TreeNode {
 
 	// Process other nodes recursively.
 	if len(n.Children) > 0 {
-		for _, child := range n.Children {
-			if g := child.findNodeByName(name); g != nil {
+		for _, c := range n.Children {
+			if node := c.getNodeByName(name); node != nil {
 				// Node found.
-				return g
+				return node
 			}
 		}
 	}
@@ -191,45 +191,52 @@ func (n *TreeNode) findNodeByName(name string) *TreeNode {
 }
 
 // Collect all ancestor nodes, starting from this node.
-func (n *TreeNode) collectAncestors() []*TreeNode {
-	parents := make([]*TreeNode, 0)
+func (n *TreeNode) getAncestors() []*TreeNode {
+	ancestors := make([]*TreeNode, 0)
 
 	if len(n.Parent.Name) > 0 {
 		// Add our parent.
-		parents = append(parents, n.Parent)
+		ancestors = append(ancestors, n.Parent)
 
-		// Add our ancestors.
-		collected := n.Parent.collectAncestors()
-		parents = append(parents, collected...)
+		// Add ancestors.
+		a := n.Parent.getAncestors()
+		ancestors = append(ancestors, a...)
 	}
 
-	return parents
+	return ancestors
 }
 
-// Add a group to the inventory tree as a child of the specified parent.
-func (n *TreeNode) addNode(parent string, name string) {
-	if parent != name {
-		if g := n.findNodeByName(name); g == nil {
-			// Add the group only if it doesn't exist.
-			if pg := n.findNodeByName(parent); pg != nil {
-				// If the parent group is found, add the group as a child.
-				pg.Children = append(pg.Children, &TreeNode{Name: name, Parent: pg, Hosts: make(map[string]bool)})
-			} else {
-				// If the parent group is not found, add the group as a child to the current node.
-				n.Children = append(n.Children, &TreeNode{Name: name, Parent: n, Hosts: make(map[string]bool)})
-			}
+// Add a child of this node if it doesn't exist.
+func (n *TreeNode) addChild(node *TreeNode) {
+	for _, c := range n.Children {
+		if c.Name == node.Name {
+			return
+		}
+	}
+	n.Children = append(n.Children, node)
+}
+
+// Add a node to the inventory tree as a child of the specified parent.
+func (n *TreeNode) appendNode(parent string, child string) {
+	if parent != child {
+		if pn := n.getNodeByName(parent); pn != nil {
+			// Parent is found, add node as its child.
+			pn.addChild(&TreeNode{Name: child, Parent: pn, Hosts: make(map[string]bool)})
+		} else {
+			// Parent group not found, add node as a child of the current node.
+			n.addChild(&TreeNode{Name: child, Parent: n, Hosts: make(map[string]bool)})
 		}
 	}
 }
 
-// Add a host to a group in the inventory tree.
-func (n *TreeNode) addHost(group string, name string) {
-	if g := n.findNodeByName(group); g != nil {
-		// If the group is found, add the host.
-		g.Hosts[name] = true
+// Add a host to a node in the inventory tree.
+func (n *TreeNode) appendHost(node string, host string) {
+	if pn := n.getNodeByName(node); pn != nil {
+		// Node found, add host.
+		pn.Hosts[host] = true
 	} else {
-		// If the group is not found, add the host to the current node.
-		n.Hosts[name] = true
+		// Node not found, add host to the current node.
+		n.Hosts[host] = true
 	}
 }
 
@@ -271,7 +278,7 @@ func (n *TreeNode) exportHosts(hosts map[string][]string) {
 		collected[n.Name] = true
 
 		// Add all parent node names.
-		parents := n.collectAncestors()
+		parents := n.getAncestors()
 		for _, parent := range parents {
 			collected[parent.Name] = true
 		}
@@ -533,7 +540,7 @@ func init() {
 	viper.SetDefault("txt.keys.srv", "SRV")
 
 	// Setup validators.
-	if err := validator.SetValidationFunc("safe", validateAttribute); err != nil {
+	if err := validator.SetValidationFunc("safe", validateAttr); err != nil {
 		panic(errors.Wrap(err, "validator initialization error"))
 	}
 }
@@ -560,7 +567,7 @@ func main() {
 		tree := &TreeNode{Name: "all", Parent: &TreeNode{}, Children: make([]*TreeNode, 0), Hosts: make(map[string]bool)}
 
 		// Load DNS records into the inventory tree.
-		tree.loadHosts(parseTXTRecords(records, config.NoTx, config.NoTxSeparator))
+		tree.importHosts(parseTXTRecords(records, config.NoTx, config.NoTxSeparator))
 
 		if !*exportFlag {
 			// Export the inventory tree into a map.
