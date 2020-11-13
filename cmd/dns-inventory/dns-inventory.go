@@ -25,6 +25,8 @@ const (
 	dnsRrTxtType uint16 = 16
 	// Number of the field that contains the TXT record value.
 	dnsRrTxtField int = 1
+	// Ansible root group name.
+	ansibleRootGroup string = "all"
 )
 
 type (
@@ -88,7 +90,7 @@ func (c *DNSServerConfig) load() {
 }
 
 // Validate host attributes.
-func validateAttribute(v interface{}, param string) error {
+func validateAttr(v interface{}, param string) error {
 	value := reflect.ValueOf(v)
 	if value.Kind() != reflect.String {
 		return errors.New("ansiblename only validates strings")
@@ -123,114 +125,95 @@ func validateAttribute(v interface{}, param string) error {
 	return nil
 }
 
-// Load a list of hosts into the inventory tree, starting from this node.
-func (n *TreeNode) loadHosts(hosts map[string]*TXTAttrs) {
+// Load a list of hosts into the inventory tree, using this node as root.
+func (n *TreeNode) importHosts(hosts map[string]*TXTAttrs) {
 	separator := viper.GetString("txt.keys.separator")
 
 	for host, attrs := range hosts {
-		// Automatically create pseudo-groups for the "all" environment.
+		// Create an environment list for this host. Add the root environment, if necessary.
 		envs := make(map[string]bool)
 		envs[attrs.Env] = true
-		envs["all"] = true
+		envs[ansibleRootGroup] = true
 
+		// Iterate the environments.
 		for env := range envs {
-			// A host can have several roles.
+			// Iterate the roles.
 			for _, role := range strings.Split(attrs.Role, ",") {
-				// A host can have several services.
+				// Iterate the services.
 				for _, srv := range strings.Split(attrs.Srv, ",") {
-					// Add the environment and role groups
+					// Environment: root>environment
+					envNode := n.addChild(env)
+
+					// Role: root>environment>role
 					roleGroup := fmt.Sprintf("%s%s%s", env, separator, role)
+					roleGroupNode := envNode.addChild(roleGroup)
 
-					n.addNode(n.Name, env)
-					n.addNode(env, roleGroup)
-
-					// Add service groups.
+					// Service: root>environment>role>service[1]>...>service[N].
 					srvGroup := roleGroup
+					srvGroupNode := roleGroupNode
 					for i, s := range strings.Split(srv, separator) {
-						if len(s) > 0 && (i == 0 || env != "all" || attrs.Env == "all") {
+						if len(s) > 0 && (i == 0 || env != ansibleRootGroup || attrs.Env == ansibleRootGroup) {
 							group := fmt.Sprintf("%s%s%s", srvGroup, separator, s)
-							n.addNode(srvGroup, group)
+							node := srvGroupNode.addChild(group)
 							srvGroup = group
+							srvGroupNode = node
 						}
 					}
 
-					// Add the host itself to the last service group.
-					n.addHost(srvGroup, host)
+					// The last service group holds the host.
+					srvGroupNode.addHost(host)
+
+					// Host: root>environment>host
+					hostGroupNode := envNode.addChild(fmt.Sprintf("%s%shost", env, separator))
+
+					// OS: root>environment>host>os
+					osGroupNode := hostGroupNode.addChild(fmt.Sprintf("%s%shost%s%s", env, separator, separator, attrs.OS))
+
+					// The OS group holds the host.
+					osGroupNode.addHost(host)
 				}
 			}
-
-			// Add OS-based groups.
-			hostGroup := fmt.Sprintf("%s%shost", env, separator)
-			osGroup := fmt.Sprintf("%s%shost%s%s", env, separator, separator, attrs.OS)
-			n.addNode(env, hostGroup)
-			n.addNode(hostGroup, osGroup)
-			n.addHost(osGroup, host)
 		}
 	}
-}
-
-// Find an inventory tree node by its name, starting from this node.
-func (n *TreeNode) findNodeByName(name string) *TreeNode {
-	if n.Name == name {
-		// Node found.
-		return n
-	}
-
-	// Process other nodes recursively.
-	if len(n.Children) > 0 {
-		for _, child := range n.Children {
-			if g := child.findNodeByName(name); g != nil {
-				// Node found.
-				return g
-			}
-		}
-	}
-
-	// Node not found.
-	return nil
 }
 
 // Collect all ancestor nodes, starting from this node.
-func (n *TreeNode) collectAncestors() []*TreeNode {
-	parents := make([]*TreeNode, 0)
+func (n *TreeNode) getAncestors() []*TreeNode {
+	ancestors := make([]*TreeNode, 0)
 
 	if len(n.Parent.Name) > 0 {
 		// Add our parent.
-		parents = append(parents, n.Parent)
+		ancestors = append(ancestors, n.Parent)
 
-		// Add our ancestors.
-		collected := n.Parent.collectAncestors()
-		parents = append(parents, collected...)
+		// Add ancestors.
+		a := n.Parent.getAncestors()
+		ancestors = append(ancestors, a...)
 	}
 
-	return parents
+	return ancestors
 }
 
-// Add a group to the inventory tree as a child of the specified parent.
-func (n *TreeNode) addNode(parent string, name string) {
-	if parent != name {
-		if g := n.findNodeByName(name); g == nil {
-			// Add the group only if it doesn't exist.
-			if pg := n.findNodeByName(parent); pg != nil {
-				// If the parent group is found, add the group as a child.
-				pg.Children = append(pg.Children, &TreeNode{Name: name, Parent: pg, Hosts: make(map[string]bool)})
-			} else {
-				// If the parent group is not found, add the group as a child to the current node.
-				n.Children = append(n.Children, &TreeNode{Name: name, Parent: n, Hosts: make(map[string]bool)})
-			}
+// Add a child of this node if it doesn't exist.
+func (n *TreeNode) addChild(name string) *TreeNode {
+	if n.Name == name {
+		return n
+	}
+
+	for _, c := range n.Children {
+		if c.Name == name {
+			return c
 		}
 	}
+
+	node := &TreeNode{Name: name, Parent: n, Hosts: make(map[string]bool)}
+	n.Children = append(n.Children, node)
+
+	return node
 }
 
-// Add a host to a group in the inventory tree.
-func (n *TreeNode) addHost(group string, name string) {
-	if g := n.findNodeByName(group); g != nil {
-		// If the group is found, add the host.
-		g.Hosts[name] = true
-	} else {
-		// If the group is not found, add the host to the current node.
-		n.Hosts[name] = true
-	}
+// Add a host to this node.
+func (n *TreeNode) addHost(host string) {
+	n.Hosts[host] = true
 }
 
 // Export the inventory tree to a map ready to be marshalled into a JSON representation of an Ansible inventory, starting from this node.
@@ -271,7 +254,7 @@ func (n *TreeNode) exportHosts(hosts map[string][]string) {
 		collected[n.Name] = true
 
 		// Add all parent node names.
-		parents := n.collectAncestors()
+		parents := n.getAncestors()
 		for _, parent := range parents {
 			collected[parent.Name] = true
 		}
@@ -533,7 +516,7 @@ func init() {
 	viper.SetDefault("txt.keys.srv", "SRV")
 
 	// Setup validators.
-	if err := validator.SetValidationFunc("safe", validateAttribute); err != nil {
+	if err := validator.SetValidationFunc("safe", validateAttr); err != nil {
 		panic(errors.Wrap(err, "validator initialization error"))
 	}
 }
@@ -557,10 +540,10 @@ func main() {
 		}
 
 		// Initialize the inventory tree.
-		tree := &TreeNode{Name: "all", Parent: &TreeNode{}, Children: make([]*TreeNode, 0), Hosts: make(map[string]bool)}
+		tree := &TreeNode{Name: ansibleRootGroup, Parent: &TreeNode{}, Children: make([]*TreeNode, 0), Hosts: make(map[string]bool)}
 
 		// Load DNS records into the inventory tree.
-		tree.loadHosts(parseTXTRecords(records, config.NoTx, config.NoTxSeparator))
+		tree.importHosts(parseTXTRecords(records, config.NoTx, config.NoTxSeparator))
 
 		if !*exportFlag {
 			// Export the inventory tree into a map.
