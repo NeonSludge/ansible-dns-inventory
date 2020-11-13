@@ -211,6 +211,7 @@ func (n *TreeNode) addChild(name string) *TreeNode {
 	return node
 }
 
+// Add a host to this node.
 func (n *TreeNode) addHost(host string) {
 	n.Hosts[host] = true
 }
