@@ -90,10 +90,10 @@ func (c *DNSServerConfig) load() {
 }
 
 // Validate host attributes.
-func validateAttr(v interface{}, param string) error {
+func safeAttr(v interface{}, param string) error {
 	value := reflect.ValueOf(v)
 	if value.Kind() != reflect.String {
-		return errors.New("ansiblename only validates strings")
+		return errors.New("safeAttr() can only validate strings")
 	}
 
 	separator := viper.GetString("txt.keys.separator")
@@ -119,7 +119,7 @@ func validateAttr(v interface{}, param string) error {
 	}
 
 	if !pattern.MatchString(value.String()) {
-		return fmt.Errorf("string '%s' is not a valid Ansible group name segment (expr: %s)", value.String(), re)
+		return fmt.Errorf("string '%s' is not a valid host attribute value (expr: %s)", value.String(), re)
 	}
 
 	return nil
@@ -193,7 +193,7 @@ func (n *TreeNode) getAncestors() []*TreeNode {
 	return ancestors
 }
 
-// Add a child of this node if it doesn't exist.
+// Add a child of this node if it doesn't exist and return a pointer to the child.
 func (n *TreeNode) addChild(name string) *TreeNode {
 	if n.Name == name {
 		return n
@@ -393,7 +393,7 @@ func getInventoryRecord(server string, domain string, host string, timeout strin
 	return records, nil
 }
 
-// Parse zone transfer results and create a list of hosts and their attributes.
+// Parse zone transfer results and create a map of hosts and their attributes.
 func parseTXTRecords(records []dns.RR, notx bool, notxSplit string) map[string]*TXTAttrs {
 	hosts := make(map[string]*TXTAttrs)
 
@@ -516,14 +516,14 @@ func init() {
 	viper.SetDefault("txt.keys.srv", "SRV")
 
 	// Setup validators.
-	if err := validator.SetValidationFunc("safe", validateAttr); err != nil {
+	if err := validator.SetValidationFunc("safe", safeAttr); err != nil {
 		panic(errors.Wrap(err, "validator initialization error"))
 	}
 }
 
 func main() {
-	listFlag := flag.Bool("list", false, "list hosts")
-	exportFlag := flag.Bool("export", false, "export hosts and the groups they belong to")
+	listFlag := flag.Bool("list", false, "produce a JSON inventory for Ansible")
+	exportFlag := flag.Bool("export", false, "export hosts and groups they belong to")
 	formatFlag := flag.String("format", "yaml", "export format")
 	hostFlag := flag.Bool("host", false, "a stub for Ansible")
 	flag.Parse()
