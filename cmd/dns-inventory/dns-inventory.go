@@ -321,6 +321,7 @@ func (n *TreeNode) exportHosts(hosts map[string][]string) {
 		for name := range collected {
 			result = append(result, name)
 		}
+		sort.Strings(result)
 
 		// Add host to map.
 		hosts[host] = result
@@ -342,6 +343,7 @@ func (n *TreeNode) exportGroups(groups map[string][]string) {
 	for host := range n.getAllHosts() {
 		hosts = append(hosts, host)
 	}
+	sort.Strings(hosts)
 
 	// Add group to map
 	groups[n.Name] = hosts
