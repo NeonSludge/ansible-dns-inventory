@@ -46,6 +46,24 @@ type (
 		NoTxSeparator string
 	}
 
+	// TXT attribute parsing configuration
+	TXTParseConfig struct {
+		// Separator between k/v pairs found in TXT records.
+		KvSeparator string
+		// Separator between a key and a value.
+		KvEquals string
+		// Separator between elements of an Ansible group name.
+		KeySeparator string
+		// Key name of the attribute containing the host operating system identifier.
+		KeyOs string
+		// Key name of the attribute containing the host environment identifier.
+		KeyEnv string
+		// Key name of the attribute containing the host role identifier.
+		KeyRole string
+		// Key name of the attribute containing the host service identifier.
+		KeySrv string
+	}
+
 	// Host attributes found in its TXT record.
 	TXTAttrs struct {
 		// Host operating system identifier.
@@ -89,6 +107,17 @@ func (c *DNSServerConfig) load() {
 	c.NoTxSeparator = viper.GetString("dns.notransfer.separator")
 }
 
+// Load TXT attribute parsing configuration
+func (c *TXTParseConfig) load() {
+	c.KvSeparator = viper.GetString("txt.kv.separator")
+	c.KvEquals = viper.GetString("txt.kv.equalsign")
+	c.KeySeparator = viper.GetString("txt.keys.separator")
+	c.KeyOs = viper.GetString("txt.keys.os")
+	c.KeyEnv = viper.GetString("txt.keys.env")
+	c.KeyRole = viper.GetString("txt.keys.role")
+	c.KeySrv = viper.GetString("txt.keys.srv")
+}
+
 // Validate host attributes.
 func safeAttr(v interface{}, param string) error {
 	value := reflect.ValueOf(v)
@@ -126,8 +155,8 @@ func safeAttr(v interface{}, param string) error {
 }
 
 // Load a list of hosts into the inventory tree, using this node as root.
-func (n *TreeNode) importHosts(hosts map[string]*TXTAttrs) {
-	separator := viper.GetString("txt.keys.separator")
+func (n *TreeNode) importHosts(hosts map[string]*TXTAttrs, pc *TXTParseConfig) {
+	sep := pc.KeySeparator
 
 	for host, attrs := range hosts {
 		// Create an environment list for this host. Add the root environment, if necessary.
@@ -145,15 +174,15 @@ func (n *TreeNode) importHosts(hosts map[string]*TXTAttrs) {
 					envNode := n.addChild(env)
 
 					// Role: root>environment>role
-					roleGroup := fmt.Sprintf("%s%s%s", env, separator, role)
+					roleGroup := fmt.Sprintf("%s%s%s", env, sep, role)
 					roleGroupNode := envNode.addChild(roleGroup)
 
 					// Service: root>environment>role>service[1]>...>service[N].
 					srvGroup := roleGroup
 					srvGroupNode := roleGroupNode
-					for i, s := range strings.Split(srv, separator) {
+					for i, s := range strings.Split(srv, sep) {
 						if len(s) > 0 && (i == 0 || env != ansibleRootGroup || attrs.Env == ansibleRootGroup) {
-							group := fmt.Sprintf("%s%s%s", srvGroup, separator, s)
+							group := fmt.Sprintf("%s%s%s", srvGroup, sep, s)
 							node := srvGroupNode.addChild(group)
 							srvGroup = group
 							srvGroupNode = node
@@ -164,10 +193,10 @@ func (n *TreeNode) importHosts(hosts map[string]*TXTAttrs) {
 					srvGroupNode.addHost(host)
 
 					// Host: root>environment>host
-					hostGroupNode := envNode.addChild(fmt.Sprintf("%s%shost", env, separator))
+					hostGroupNode := envNode.addChild(fmt.Sprintf("%s%shost", env, sep))
 
 					// OS: root>environment>host>os
-					osGroupNode := hostGroupNode.addChild(fmt.Sprintf("%s%shost%s%s", env, separator, separator, attrs.OS))
+					osGroupNode := hostGroupNode.addChild(fmt.Sprintf("%s%shost%s%s", env, sep, sep, attrs.OS))
 
 					// The OS group holds the host.
 					osGroupNode.addHost(host)
@@ -243,7 +272,7 @@ func (n *TreeNode) exportInventory(inventory map[string]*InventoryGroup) {
 	}
 }
 
-// Export the inventory to a map ready to be marshalled into a YAML file that maps hosts to groups they belong to, starting from this node.
+// Export the inventory tree to a map of hosts and groups the belong to, starting from this node.
 func (n *TreeNode) exportHosts(hosts map[string][]string) {
 	// Collect a list of unique group names for every host owned by this node.
 	for host := range n.Hosts {
@@ -270,6 +299,7 @@ func (n *TreeNode) exportHosts(hosts map[string][]string) {
 			result = append(result, name)
 		}
 
+		// Add host to map.
 		hosts[host] = result
 	}
 
@@ -281,21 +311,55 @@ func (n *TreeNode) exportHosts(hosts map[string][]string) {
 	}
 }
 
-// Convert a hosts map into newline-delimited YAML.
-func hostsToNDYAML(hosts map[string][]string, mode string) ([]byte, error) {
+// Export the inventory tree to a map of groups and hosts they own, starting from this node.
+func (n *TreeNode) exportGroups(groups map[string][]string) {
+	// Collect node hosts.
+	hosts := make([]string, 0, len(n.Hosts))
+	for host := range n.Hosts {
+		hosts = append(hosts, host)
+	}
+	sort.Strings(hosts)
+
+	// Add group to map
+	groups[n.Name] = hosts
+
+	// Process other nodes recursively.
+	if len(n.Children) > 0 {
+		for _, child := range n.Children {
+			child.exportGroups(groups)
+		}
+	}
+}
+
+// Convert a map of strings into newline-delimited YAML.
+func mapStrToNDYAML(m map[string][]string, mode string) ([]byte, error) {
 	buf := new(bytes.Buffer)
 
-	for host, groups := range hosts {
-		var groupsYAML string
+	for key, value := range m {
+		var yaml string
 
 		switch mode {
 		case "list":
-			groups = Map(groups, strconv.Quote)
-			groupsYAML = fmt.Sprintf("[%s]", strings.Join(groups, ","))
+			value = mapStr(value, strconv.Quote)
+			yaml = fmt.Sprintf("[%s]", strings.Join(value, ","))
 		default:
-			groupsYAML = fmt.Sprintf("\"%s\"", strings.Join(groups, ","))
+			yaml = fmt.Sprintf("\"%s\"", strings.Join(value, ","))
 		}
-		if _, err := buf.WriteString(fmt.Sprintf("\"%s\": %s\n", host, groupsYAML)); err != nil {
+		if _, err := buf.WriteString(fmt.Sprintf("\"%s\": %s\n", key, yaml)); err != nil {
+			return buf.Bytes(), err
+		}
+	}
+
+	return buf.Bytes(), nil
+}
+
+func mapAttrToNDYAML(m map[string]*TXTAttrs, pc *TXTParseConfig) ([]byte, error) {
+	buf := new(bytes.Buffer)
+
+	for key, value := range m {
+		yaml := fmt.Sprintf("{\"%s\": \"%s\", \"%s\": \"%s\", \"%s\": \"%s\", \"%s\": \"%s\"}", pc.KeyOs, value.OS, pc.KeyEnv, value.Env, pc.KeyRole, value.Role, pc.KeySrv, value.Srv)
+
+		if _, err := buf.WriteString(fmt.Sprintf("\"%s\": %s\n", key, yaml)); err != nil {
 			return buf.Bytes(), err
 		}
 	}
@@ -394,7 +458,7 @@ func getInventoryRecord(server string, domain string, host string, timeout strin
 }
 
 // Parse zone transfer results and create a map of hosts and their attributes.
-func parseTXTRecords(records []dns.RR, notx bool, notxSplit string) map[string]*TXTAttrs {
+func parseTXTRecords(records []dns.RR, dc *DNSServerConfig, pc *TXTParseConfig) map[string]*TXTAttrs {
 	hosts := make(map[string]*TXTAttrs)
 
 	for _, rr := range records {
@@ -402,12 +466,12 @@ func parseTXTRecords(records []dns.RR, notx bool, notxSplit string) map[string]*
 		var attrs *TXTAttrs
 		var err error
 
-		if notx {
-			name = strings.TrimSuffix(strings.Split(dns.Field(rr, dnsRrTxtField), notxSplit)[0], ".")
-			attrs, err = parseAttributes(strings.Split(dns.Field(rr, dnsRrTxtField), notxSplit)[1])
+		if dc.NoTx {
+			name = strings.TrimSuffix(strings.Split(dns.Field(rr, dnsRrTxtField), dc.NoTxSeparator)[0], ".")
+			attrs, err = parseAttributes(strings.Split(dns.Field(rr, dnsRrTxtField), dc.NoTxSeparator)[1], pc)
 		} else {
 			name = strings.TrimSuffix(rr.Header().Name, ".")
-			attrs, err = parseAttributes(dns.Field(rr, dnsRrTxtField))
+			attrs, err = parseAttributes(dns.Field(rr, dnsRrTxtField), pc)
 		}
 
 		if err != nil {
@@ -425,28 +489,20 @@ func parseTXTRecords(records []dns.RR, notx bool, notxSplit string) map[string]*
 }
 
 // Parse host attributes.
-func parseAttributes(raw string) (*TXTAttrs, error) {
-	separator := viper.GetString("txt.kv.separator")
-	equalsign := viper.GetString("txt.kv.equalsign")
-
-	keyOS := viper.GetString("txt.keys.os")
-	keyEnv := viper.GetString("txt.keys.env")
-	keyRole := viper.GetString("txt.keys.role")
-	keySrv := viper.GetString("txt.keys.srv")
-
+func parseAttributes(raw string, pc *TXTParseConfig) (*TXTAttrs, error) {
 	attrs := &TXTAttrs{}
-	items := strings.Split(raw, separator)
+	items := strings.Split(raw, pc.KvSeparator)
 
 	for _, item := range items {
-		kv := strings.Split(item, equalsign)
+		kv := strings.Split(item, pc.KvEquals)
 		switch kv[0] {
-		case keyOS:
+		case pc.KeyOs:
 			attrs.OS = kv[1]
-		case keyEnv:
+		case pc.KeyEnv:
 			attrs.Env = kv[1]
-		case keyRole:
+		case pc.KeyRole:
 			attrs.Role = kv[1]
-		case keySrv:
+		case pc.KeySrv:
 			attrs.Srv = kv[1]
 		}
 	}
@@ -459,14 +515,14 @@ func parseAttributes(raw string) (*TXTAttrs, error) {
 }
 
 // Apply a function to all elements in a slice of strings.
-func Map(vs []string, f func(string) string) []string {
-	vsmap := make([]string, len(vs))
+func mapStr(values []string, f func(string) string) []string {
+	result := make([]string, len(values))
 
-	for i, v := range vs {
-		vsmap[i] = f(v)
+	for i, value := range values {
+		result[i] = f(value)
 	}
 
-	return vsmap
+	return result
 }
 
 func init() {
@@ -523,18 +579,22 @@ func init() {
 
 func main() {
 	listFlag := flag.Bool("list", false, "produce a JSON inventory for Ansible")
-	exportFlag := flag.Bool("export", false, "export hosts and groups they belong to")
-	formatFlag := flag.String("format", "yaml", "export format")
+	hostsFlag := flag.Bool("hosts", false, "export hosts")
+	attrsFlag := flag.Bool("attrs", false, "export host attributes")
+	groupsFlag := flag.Bool("groups", false, "export groups")
+	formatFlag := flag.String("format", "yaml", "select export format")
 	hostFlag := flag.Bool("host", false, "a stub for Ansible")
 	flag.Parse()
 
-	if *listFlag || *exportFlag {
-		// Initialize and load DNS server configuration.
-		config := &DNSServerConfig{}
-		config.load()
+	if !*hostFlag {
+		// Initialize and load configuration.
+		dnsConfig := &DNSServerConfig{}
+		parseConfig := &TXTParseConfig{}
+		dnsConfig.load()
+		parseConfig.load()
 
 		// Acquire TXT records.
-		records := getTXTRecords(config)
+		records := getTXTRecords(dnsConfig)
 		if len(records) == 0 {
 			log.Fatal("empty TXT records list")
 		}
@@ -543,45 +603,51 @@ func main() {
 		tree := &TreeNode{Name: ansibleRootGroup, Parent: &TreeNode{}, Children: make([]*TreeNode, 0), Hosts: make(map[string]bool)}
 
 		// Load DNS records into the inventory tree.
-		tree.importHosts(parseTXTRecords(records, config.NoTx, config.NoTxSeparator))
+		hosts := parseTXTRecords(records, dnsConfig, parseConfig)
+		tree.importHosts(hosts, parseConfig)
 
-		if !*exportFlag {
+		// Export the inventory tree in various formats.
+		var bytes []byte
+		var err error
+		switch {
+		case *listFlag:
+			export := make(map[string]*InventoryGroup)
+
 			// Export the inventory tree into a map.
-			inventory := make(map[string]*InventoryGroup)
-			tree.exportInventory(inventory)
+			tree.exportInventory(export)
 
 			// Marshal the map into a JSON representation of an Ansible inventory.
-			jsonInventory, err := json.Marshal(inventory)
-			if err != nil {
-				log.Fatal(err)
+			bytes, err = json.Marshal(export)
+		case *attrsFlag:
+			bytes, err = mapAttrToNDYAML(hosts, parseConfig)
+		default:
+			export := make(map[string][]string)
+
+			// Export the inventory tree into a map.
+			if *hostsFlag {
+				tree.exportHosts(export)
+			} else if *groupsFlag {
+				tree.exportGroups(export)
 			}
 
-			fmt.Println(string(jsonInventory))
-		} else {
-			// Export the inventory tree into a map.
-			hosts := make(map[string][]string)
-			tree.exportHosts(hosts)
-
-			var export []byte
-			var err error
 			switch *formatFlag {
 			case "json":
-				export, err = json.Marshal(hosts)
+				bytes, err = json.Marshal(export)
 			case "yaml-csv":
-				export, err = hostsToNDYAML(hosts, "csv")
+				bytes, err = mapStrToNDYAML(export, "csv")
 			case "yaml-list":
-				export, err = hostsToNDYAML(hosts, "list")
+				bytes, err = mapStrToNDYAML(export, "list")
 			default:
-				export, err = hostsToNDYAML(hosts, "csv")
+				bytes, err = mapStrToNDYAML(export, "csv")
 			}
-
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			fmt.Println(string(export))
 		}
-	} else if *hostFlag {
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		fmt.Println(string(bytes))
+	} else {
 		fmt.Println("{}")
 	}
 }
