@@ -222,6 +222,29 @@ func (n *TreeNode) getAncestors() []*TreeNode {
 	return ancestors
 }
 
+// Collect all hosts from descendant groups, starting from this node.
+func (n *TreeNode) getAllHosts() map[string]bool {
+	result := make(map[string]bool)
+
+	// Add our own hosts.
+	if len(n.Hosts) > 0 {
+		for host := range n.Hosts {
+			result[host] = true
+		}
+	}
+
+	// Add hosts of our descendants.
+	if len(n.Children) > 0 {
+		for _, child := range n.Children {
+			for host := range child.getAllHosts() {
+				result[host] = true
+			}
+		}
+	}
+
+	return result
+}
+
 // Add a child of this node if it doesn't exist and return a pointer to the child.
 func (n *TreeNode) addChild(name string) *TreeNode {
 	if n.Name == name {
@@ -283,9 +306,9 @@ func (n *TreeNode) exportHosts(hosts map[string][]string) {
 		collected[n.Name] = true
 
 		// Add all parent node names.
-		parents := n.getAncestors()
-		for _, parent := range parents {
-			collected[parent.Name] = true
+		ancestors := n.getAncestors()
+		for _, ancestor := range ancestors {
+			collected[ancestor.Name] = true
 		}
 
 		// Get current list for host.
@@ -311,14 +334,14 @@ func (n *TreeNode) exportHosts(hosts map[string][]string) {
 	}
 }
 
-// Export the inventory tree to a map of groups and hosts they own, starting from this node.
+// Export the inventory tree to a map of groups and hosts they contain, starting from this node.
 func (n *TreeNode) exportGroups(groups map[string][]string) {
-	// Collect node hosts.
-	hosts := make([]string, 0, len(n.Hosts))
-	for host := range n.Hosts {
+	hosts := make([]string, 0)
+
+	// Get all hosts that this group contains.
+	for host := range n.getAllHosts() {
 		hosts = append(hosts, host)
 	}
-	sort.Strings(hosts)
 
 	// Add group to map
 	groups[n.Name] = hosts
@@ -624,9 +647,10 @@ func main() {
 			export := make(map[string][]string)
 
 			// Export the inventory tree into a map.
-			if *hostsFlag {
+			switch {
+			case *hostsFlag:
 				tree.exportHosts(export)
-			} else if *groupsFlag {
+			case *groupsFlag:
 				tree.exportGroups(export)
 			}
 
