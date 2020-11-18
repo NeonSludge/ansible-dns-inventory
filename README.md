@@ -146,4 +146,23 @@ These will produce the following Ansible inventory tree:
 `ansible-dns-inventory` can also export the inventory as a list of hosts and groups they belong to. This can be used to map host names to group names in some third-party software.
 An example of this use case would be using this output as a dictionary in a [Logstash translate filter](https://www.elastic.co/guide/en/logstash/current/plugins-filters-translate.html#plugins-filters-translate-dictionary_path) to populate a `groups` field during log processing to be able to filter events coming from a specific group of hosts.
 
-`ansible-dns-inventory` currently supports three export formats: JSON, YAML with groups as a YAML list and YAML with groups as a CSV string. A format can be selected by the `-format` flag: it accepts `json`, `yaml-list` or `yaml-csv` as its value. The default is `yaml-csv`.
+There are several export modes, some of which support different export formats:
+
+| Flag      | Description                                                   | Formats                                                        |
+| --------- | ------------------------------------------------------------- | -------------------------------------------------------------- |
+| `-hosts`  | Export hosts, mapping each one to a list of groups.           | available: `json`, `yaml-list`, `yaml-csv` default: `yaml-csv` |
+| `-groups` | Export groups, mapping each one to a list of hosts.           | available: `json`, `yaml-list`, `yaml-csv` default: `yaml-csv` |
+| `-attrs`  | Export hosts, mapping each one to a dictionary of attributes. | not supported                                                  |
+
+#### Examples:
+```
+$ dns-inventory -hosts -format yaml-list
+...
+"app01.infra.local": ["all", "all_app", "all_app_tomcat", "all_host", ...]
+...
+
+$ dns-inventory -attrs
+...
+"app01.infra.local": {"OS": "linux", "ENV": "dev", "ROLE": "app", "SRV": "tomcat_backend_auth"}
+...
+```
