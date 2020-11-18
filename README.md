@@ -14,6 +14,23 @@ For this to work you must ensure that:
 2. Every host that should be managed by Ansible has a properly formatted DNS TXT record OR there is a set of TXT records belonging to a special host (the `dns.notransfer.host` parameter) AND you're using the no-transfer mode.
 3. You have created a configuration file for `ansible-dns-inventory`.
 
+### Usage
+```
+Usage of ./dns-inventory:
+  -attrs
+        export host attributes
+  -format string
+        select export format, if available (default "yaml")
+  -groups
+        export groups
+  -host
+        a stub for Ansible
+  -hosts
+        export hosts
+  -list
+        produce a JSON inventory for Ansible
+```
+
 ### TXT record format
 There are two ways to add a host to the inventory:
 
@@ -143,7 +160,7 @@ These will produce the following Ansible inventory tree:
 
 ### Export mode
 
-`ansible-dns-inventory` can also export the inventory as a list of hosts and groups they belong to. This can be used to map host names to group names in some third-party software.
+`ansible-dns-inventory` can also export the inventory in several formats. This makes it possible to use your inventory in some third-party software.
 An example of this use case would be using this output as a dictionary in a [Logstash translate filter](https://www.elastic.co/guide/en/logstash/current/plugins-filters-translate.html#plugins-filters-translate-dictionary_path) to populate a `groups` field during log processing to be able to filter events coming from a specific group of hosts.
 
 There are several export modes, some of which support different export formats:
