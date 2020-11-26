@@ -31,13 +31,13 @@ type (
 	// Inventory tree node for the tree export mode.
 	ExportNode struct {
 		// Group name.
-		Name string
+		Name string `json:"name"`
 		// Group Parent
-		Parent *Node
+		Parent *Node `json:"-"`
 		// Group children.
-		Children []*Node
+		Children []*Node `json:"children"`
 		// Hosts belonging to this group.
-		Hosts []string
+		Hosts []string `json:"hosts"`
 	}
 )
 
