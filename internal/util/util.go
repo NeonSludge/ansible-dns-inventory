@@ -50,6 +50,8 @@ func SafeAttr(v interface{}, param string) error {
 	return nil
 }
 
+// MarshalYAMLFlow returns the flow-style YAML encoding of v which can be a map[string][]string or a map[string]*types.TXTAttrs.
+// It supports two modes of marshalling the values in the map: as a YAML list (mode=list) and as a CSV string (mode=csv).
 func MarshalYAMLFlow(v interface{}, mode string, pc *config.Parse) ([]byte, error) {
 	buf := new(bytes.Buffer)
 

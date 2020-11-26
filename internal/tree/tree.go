@@ -1,6 +1,7 @@
 package tree
 
 import (
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
@@ -26,7 +27,36 @@ type (
 		// Hosts belonging to this group.
 		Hosts map[string]bool
 	}
+
+	// Inventory tree node for the tree export mode.
+	ExportNode struct {
+		// Group name.
+		Name string
+		// Group Parent
+		Parent *Node
+		// Group children.
+		Children []*Node
+		// Hosts belonging to this group.
+		Hosts []string
+	}
 )
+
+// MarshalJSON implements a custom Marshaller for tree nodes.
+func (n *Node) MarshalJSON() ([]byte, error) {
+	// Collect node hosts.
+	hosts := make([]string, 0, len(n.Hosts))
+	for host := range n.Hosts {
+		hosts = append(hosts, host)
+	}
+	sort.Strings(hosts)
+
+	return json.Marshal(&ExportNode{
+		Name:     n.Name,
+		Parent:   n.Parent,
+		Children: n.Children,
+		Hosts:    hosts,
+	})
+}
 
 // Load a list of hosts into the inventory tree, using this node as root.
 func (n *Node) ImportHosts(hosts map[string]*types.TXTAttrs, pc *config.Parse) {

@@ -28,6 +28,7 @@ func main() {
 	hostsFlag := flag.Bool("hosts", false, "export hosts")
 	attrsFlag := flag.Bool("attrs", false, "export host attributes")
 	groupsFlag := flag.Bool("groups", false, "export groups")
+	treeFlag := flag.Bool("tree", false, "export raw inventory tree")
 	formatFlag := flag.String("format", "yaml", "select export format, if available")
 	hostFlag := flag.Bool("host", false, "a stub for Ansible")
 	flag.Parse()
@@ -65,6 +66,8 @@ func main() {
 			bytes, err = json.Marshal(export)
 		case *attrsFlag:
 			bytes, err = util.MarshalYAMLFlow(hosts, "", cfgParse)
+		case *treeFlag:
+			bytes, err = json.Marshal(inventory)
 		default:
 			export := make(map[string][]string)
 
