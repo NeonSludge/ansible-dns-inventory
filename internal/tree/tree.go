@@ -185,6 +185,17 @@ func (n *Node) AddHost(host string) {
 	n.Hosts[host] = true
 }
 
+// Sort children by name recursively, strating from this node.
+func (n *Node) SortChildren() {
+	if len(n.Children) > 0 {
+		sort.Slice(n.Children, func(i, j int) bool { return n.Children[i].Name < n.Children[j].Name })
+
+		for _, child := range n.Children {
+			child.SortChildren()
+		}
+	}
+}
+
 // Export the inventory tree to a map ready to be marshalled into a JSON representation of an Ansible inventory, starting from this node.
 func (n *Node) ExportInventory(inventory map[string]*types.InventoryGroup) {
 	// Collect node children.
@@ -192,7 +203,6 @@ func (n *Node) ExportInventory(inventory map[string]*types.InventoryGroup) {
 	for _, child := range n.Children {
 		children = append(children, child.Name)
 	}
-	sort.Strings(children)
 
 	// Collect node hosts.
 	hosts := make([]string, 0, len(n.Hosts))
