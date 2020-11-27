@@ -50,6 +50,7 @@ func main() {
 		// Load DNS records into the inventory tree.
 		hosts := dns.ParseTXTRecords(records, cfgDNS, cfgParse)
 		inventory.ImportHosts(hosts, cfgParse)
+		inventory.SortChildren()
 
 		// Export the inventory tree in various formats.
 		var bytes []byte
