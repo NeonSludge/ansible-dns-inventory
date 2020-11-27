@@ -163,7 +163,7 @@ These will produce the following Ansible inventory tree:
 `ansible-dns-inventory` can also export the inventory in several formats. This makes it possible to use your inventory in some third-party software.
 An example of this use case would be using this output as a dictionary in a [Logstash translate filter](https://www.elastic.co/guide/en/logstash/current/plugins-filters-translate.html#plugins-filters-translate-dictionary_path) to populate a `groups` field during log processing to be able to filter events coming from a specific group of hosts.
 
-There are several export modes, some of which support different export formats:
+There are several export modes, which support different export formats.
 
 | Flag      | Description                                                   | Formats                                 |
 | --------- | ------------------------------------------------------------- | --------------------------------------- |
@@ -171,6 +171,8 @@ There are several export modes, some of which support different export formats:
 | `-groups` | Export groups, mapping each one to a list of hosts.           | `json`, `yaml`, `yaml-list`, `yaml-csv` |
 | `-attrs`  | Export hosts, mapping each one to a dictionary of attributes. | `json`, `yaml`                          |
 | `-tree`   | Export the raw inventory tree.                                | `json`, `yaml`                          |
+
+The default format is always YAML.
 
 #### Examples:
 ```

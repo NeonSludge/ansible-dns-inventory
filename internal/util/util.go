@@ -14,7 +14,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 
-	"gopkg.in/yaml.v3"
+	"gopkg.in/yaml.v2"
 )
 
 // Validate host attributes.
@@ -54,30 +54,30 @@ func SafeAttr(v interface{}, param string) error {
 }
 
 // Marshal returns the JSON or YAML encoding of v.
-func Marshal(v interface{}, mode string, pc *config.Parse) ([]byte, error) {
+func Marshal(v interface{}, format string, pc *config.Parse) ([]byte, error) {
 	var bytes []byte
 	var err error
 
-	switch mode {
+	switch format {
 	case "yaml":
 		bytes, err = yaml.Marshal(v)
 	case "json":
 		bytes, err = json.Marshal(v)
 	default:
-		bytes, err = marshalYAMLFlow(v, mode, pc)
+		bytes, err = marshalYAMLFlow(v, format, pc)
 	}
 
 	if err != nil {
-		return bytes, errors.Wrapf(err, "marshalling error: %v (%T)", v, v)
+		return bytes, errors.Wrapf(err, "marshalling error")
 	}
 
 	return bytes, nil
 }
 
 // marshalYAMLFlow returns the flow-style YAML encoding of v which can be a map[string][]string or a map[string]*types.TXTAttrs.
-// It supports two modes of marshalling the values in the map: as a YAML list (mode=yaml-list) and as a CSV string (mode=yaml-csv).
+// It supports two formats of marshalling the values in the map: as a YAML list (format=yaml-list) and as a CSV string (format=yaml-csv).
 // TODO: deal with yaml.Marshal's issues with flow-style encoding and switch to using that instead of this hack.
-func marshalYAMLFlow(v interface{}, mode string, pc *config.Parse) ([]byte, error) {
+func marshalYAMLFlow(v interface{}, format string, pc *config.Parse) ([]byte, error) {
 	buf := new(bytes.Buffer)
 
 	switch v := v.(type) {
@@ -85,14 +85,14 @@ func marshalYAMLFlow(v interface{}, mode string, pc *config.Parse) ([]byte, erro
 		for key, value := range v {
 			var yaml string
 
-			switch mode {
+			switch format {
 			case "yaml-list":
 				value = mapStr(value, strconv.Quote)
 				yaml = fmt.Sprintf("[%s]", strings.Join(value, ","))
 			case "yaml-csv":
 				yaml = fmt.Sprintf("\"%s\"", strings.Join(value, ","))
 			default:
-				return buf.Bytes(), fmt.Errorf("unsupported mode: %s", mode)
+				return buf.Bytes(), fmt.Errorf("unsupported format: %s", format)
 			}
 
 			if _, err := buf.WriteString(fmt.Sprintf("\"%s\": %s\n", key, yaml)); err != nil {
@@ -108,7 +108,7 @@ func marshalYAMLFlow(v interface{}, mode string, pc *config.Parse) ([]byte, erro
 			}
 		}
 	default:
-		return buf.Bytes(), fmt.Errorf("cannot encode %T as %s", v, mode)
+		return buf.Bytes(), fmt.Errorf("unsupported format: %s", format)
 	}
 
 	return buf.Bytes(), nil

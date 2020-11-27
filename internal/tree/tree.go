@@ -21,7 +21,7 @@ type (
 		// Group name.
 		Name string
 		// Group Parent
-		Parent *Node
+		Parent *Node `json:"-" yaml:"-"`
 		// Group children.
 		Children []*Node
 		// Hosts belonging to this group.
@@ -31,17 +31,15 @@ type (
 	// Inventory tree node for the tree export mode.
 	ExportNode struct {
 		// Group name.
-		Name string `json:"name"`
-		// Group Parent
-		Parent *Node `json:"-"`
+		Name string `json:"name" yaml:"name"`
 		// Group children.
-		Children []*Node `json:"children"`
+		Children []*Node `json:"children" yaml:"children"`
 		// Hosts belonging to this group.
-		Hosts []string `json:"hosts"`
+		Hosts []string `json:"hosts" yaml:"hosts"`
 	}
 )
 
-// MarshalJSON implements a custom Marshaller for tree nodes.
+// MarshalJSON implements a custom JSON Marshaller for tree nodes.
 func (n *Node) MarshalJSON() ([]byte, error) {
 	// Collect node hosts.
 	hosts := make([]string, 0, len(n.Hosts))
@@ -52,10 +50,25 @@ func (n *Node) MarshalJSON() ([]byte, error) {
 
 	return json.Marshal(&ExportNode{
 		Name:     n.Name,
-		Parent:   n.Parent,
 		Children: n.Children,
 		Hosts:    hosts,
 	})
+}
+
+// MarshalYAML implements a custom YAML Marshaller for tree nodes.
+func (n *Node) MarshalYAML() (interface{}, error) {
+	// Collect node hosts.
+	hosts := make([]string, 0, len(n.Hosts))
+	for host := range n.Hosts {
+		hosts = append(hosts, host)
+	}
+	sort.Strings(hosts)
+
+	return &ExportNode{
+		Name:     n.Name,
+		Children: n.Children,
+		Hosts:    hosts,
+	}, nil
 }
 
 // Load a list of hosts into the inventory tree, using this node as root.
