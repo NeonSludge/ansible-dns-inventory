@@ -101,7 +101,14 @@ func marshalYAMLFlow(v interface{}, format string, pc *config.Parse) ([]byte, er
 		}
 	case map[string]*types.TXTAttrs:
 		for key, value := range v {
-			yaml := fmt.Sprintf("{\"%s\": \"%s\", \"%s\": \"%s\", \"%s\": \"%s\", \"%s\": \"%s\"}", pc.KeyOs, value.OS, pc.KeyEnv, value.Env, pc.KeyRole, value.Role, pc.KeySrv, value.Srv)
+			var yaml string
+
+			switch format {
+			case "yaml-flow":
+				yaml = fmt.Sprintf("{\"%s\": \"%s\", \"%s\": \"%s\", \"%s\": \"%s\", \"%s\": \"%s\"}", pc.KeyOs, value.OS, pc.KeyEnv, value.Env, pc.KeyRole, value.Role, pc.KeySrv, value.Srv)
+			default:
+				return buf.Bytes(), fmt.Errorf("unsupported format: %s", format)
+			}
 
 			if _, err := buf.WriteString(fmt.Sprintf("\"%s\": %s\n", key, yaml)); err != nil {
 				return buf.Bytes(), err

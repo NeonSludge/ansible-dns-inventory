@@ -169,10 +169,10 @@ There are several export modes, which support different export formats.
 | --------- | ------------------------------------------------------------- | --------------------------------------- |
 | `-hosts`  | Export hosts, mapping each one to a list of groups.           | `json`, `yaml`, `yaml-list`, `yaml-csv` |
 | `-groups` | Export groups, mapping each one to a list of hosts.           | `json`, `yaml`, `yaml-list`, `yaml-csv` |
-| `-attrs`  | Export hosts, mapping each one to a dictionary of attributes. | `json`, `yaml`                          |
+| `-attrs`  | Export hosts, mapping each one to a dictionary of attributes. | `json`, `yaml`, `yaml-flow`             |
 | `-tree`   | Export the raw inventory tree.                                | `json`, `yaml`                          |
 
-The default format is always YAML.
+The default format is always `yaml`.
 
 #### Examples:
 ```
