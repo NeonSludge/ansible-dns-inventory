@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -63,11 +62,11 @@ func main() {
 			inventory.ExportInventory(export)
 
 			// Marshal the map into a JSON representation of an Ansible inventory.
-			bytes, err = json.Marshal(export)
+			bytes, err = util.Marshal(export, "json", cfgParse)
 		case *attrsFlag:
-			bytes, err = util.MarshalYAMLFlow(hosts, "", cfgParse)
+			bytes, err = util.Marshal(hosts, *formatFlag, cfgParse)
 		case *treeFlag:
-			bytes, err = json.Marshal(inventory)
+			bytes, err = util.Marshal(inventory, *formatFlag, cfgParse)
 		default:
 			export := make(map[string][]string)
 
@@ -79,16 +78,7 @@ func main() {
 				inventory.ExportGroups(export)
 			}
 
-			switch *formatFlag {
-			case "json":
-				bytes, err = json.Marshal(export)
-			case "yaml-csv":
-				bytes, err = util.MarshalYAMLFlow(export, "csv", nil)
-			case "yaml-list":
-				bytes, err = util.MarshalYAMLFlow(export, "list", nil)
-			default:
-				bytes, err = util.MarshalYAMLFlow(export, "csv", nil)
-			}
+			bytes, err = util.Marshal(export, *formatFlag, cfgParse)
 		}
 
 		if err != nil {

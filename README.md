@@ -165,11 +165,12 @@ An example of this use case would be using this output as a dictionary in a [Log
 
 There are several export modes, some of which support different export formats:
 
-| Flag      | Description                                                   | Formats                                                        |
-| --------- | ------------------------------------------------------------- | -------------------------------------------------------------- |
-| `-hosts`  | Export hosts, mapping each one to a list of groups.           | available: `json`, `yaml-list`, `yaml-csv` default: `yaml-csv` |
-| `-groups` | Export groups, mapping each one to a list of hosts.           | available: `json`, `yaml-list`, `yaml-csv` default: `yaml-csv` |
-| `-attrs`  | Export hosts, mapping each one to a dictionary of attributes. | not supported                                                  |
+| Flag      | Description                                                   | Formats                                 |
+| --------- | ------------------------------------------------------------- | --------------------------------------- |
+| `-hosts`  | Export hosts, mapping each one to a list of groups.           | `json`, `yaml`, `yaml-list`, `yaml-csv` |
+| `-groups` | Export groups, mapping each one to a list of hosts.           | `json`, `yaml`, `yaml-list`, `yaml-csv` |
+| `-attrs`  | Export hosts, mapping each one to a dictionary of attributes. | `json`, `yaml`                          |
+| `-tree`   | Export the raw inventory tree.                                | `json`, `yaml`                          |
 
 #### Examples:
 ```
