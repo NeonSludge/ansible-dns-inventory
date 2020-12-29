@@ -164,14 +164,16 @@ An example of this use case would be using this output as a dictionary in a [Log
 
 There are several export modes, which support different export formats.
 
-| Flag      | Description                                                   | Formats                                 |
-| --------- | ------------------------------------------------------------- | --------------------------------------- |
-| `-hosts`  | Export hosts, mapping each one to a list of groups.           | `json`, `yaml`, `yaml-list`, `yaml-csv` |
-| `-groups` | Export groups, mapping each one to a list of hosts.           | `json`, `yaml`, `yaml-list`, `yaml-csv` |
-| `-attrs`  | Export hosts, mapping each one to a dictionary of attributes. | `json`, `yaml`, `yaml-flow`             |
-| `-tree`   | Export the raw inventory tree.                                | `json`, `yaml`                          |
+| Flag      | Description                                                             | Formats                                 |
+| --------- | ----------------------------------------------------------------------- | --------------------------------------- |
+| `-hosts`  | Export hosts, mapping each one to a list of groups.                     | `json`, `yaml`, `yaml-list`, `yaml-csv` |
+| `-groups` | Export groups, mapping each one to a list of hosts.                     | `json`, `yaml`, `yaml-list`, `yaml-csv` |
+| `-attrs`  | Export hosts, mapping each one to a list of dictionaries of attributes. | `json`, `yaml`, `yaml-flow`             |
+| `-tree`   | Export the raw inventory tree.                                          | `json`, `yaml`                          |
 
 The default format is always `yaml`.
+
+The `-attrs` mode exports a list of dictionaries of attributes for each host. If a host has multiple TXT records or multiple elements in a comma-separated list in the `ROLE` or `SRV` attribute, the attribute list for this host in the `-attrs` output will contain multiple dictionaries: one for each detected attribute "set".
 
 #### Examples:
 ```
@@ -185,8 +187,8 @@ $ dns-inventory -hosts -format yaml-csv
 "app01.infra.local": "all,all_app,all_app_tomcat,all_host,..."
 ...
 
-$ dns-inventory -attrs
+$ dns-inventory -attrs -format yaml-flow
 ...
-"app01.infra.local": {"OS": "linux", "ENV": "dev", "ROLE": "app", "SRV": "tomcat_backend_auth"}
+"app01.infra.local": [{"OS": "linux", "ENV": "dev", "ROLE": "app", "SRV": "tomcat_backend_auth"}]
 ...
 ```

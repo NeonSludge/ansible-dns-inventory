@@ -99,18 +99,19 @@ func marshalYAMLFlow(v interface{}, format string, cfg *config.Main) ([]byte, er
 				return buf.Bytes(), err
 			}
 		}
-	case map[string]*types.TXTAttrs:
+	case map[string][]*types.TXTAttrs:
 		for key, value := range v {
-			var yaml string
-
-			switch format {
-			case "yaml-flow":
-				yaml = fmt.Sprintf("{\"%s\": \"%s\", \"%s\": \"%s\", \"%s\": \"%s\", \"%s\": \"%s\"}", cfg.KeyOs, value.OS, cfg.KeyEnv, value.Env, cfg.KeyRole, value.Role, cfg.KeySrv, value.Srv)
-			default:
-				return buf.Bytes(), fmt.Errorf("unsupported format: %s", format)
+			var yaml []string
+			for _, attrs := range value {
+				switch format {
+				case "yaml-flow":
+					yaml = append(yaml, fmt.Sprintf("{\"%s\": \"%s\", \"%s\": \"%s\", \"%s\": \"%s\", \"%s\": \"%s\"}", cfg.KeyOs, attrs.OS, cfg.KeyEnv, attrs.Env, cfg.KeyRole, attrs.Role, cfg.KeySrv, attrs.Srv))
+				default:
+					return buf.Bytes(), fmt.Errorf("unsupported format: %s", format)
+				}
 			}
 
-			if _, err := buf.WriteString(fmt.Sprintf("\"%s\": %s\n", key, yaml)); err != nil {
+			if _, err := buf.WriteString(fmt.Sprintf("\"%s\": [%s]\n", key, strings.Join(yaml, ","))); err != nil {
 				return buf.Bytes(), err
 			}
 		}
