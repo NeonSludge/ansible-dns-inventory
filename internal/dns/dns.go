@@ -111,9 +111,9 @@ func GetInventoryRecord(server string, domain string, host string, timeout strin
 	return records, nil
 }
 
-// Parse zone transfer results and create a map of hosts and their attributes.
-func ParseTXTRecords(records []dns.RR, dc *config.DNS, pc *config.Parse) map[string]*types.TXTAttrs {
-	hosts := make(map[string]*types.TXTAttrs)
+// Parse zone transfer results and map hosts to lists of their attributes.
+func ParseTXTRecords(records []dns.RR, dc *config.DNS, pc *config.Parse) map[string][]*types.TXTAttrs {
+	hosts := make(map[string][]*types.TXTAttrs)
 
 	for _, rr := range records {
 		var name string
@@ -133,9 +133,15 @@ func ParseTXTRecords(records []dns.RR, dc *config.DNS, pc *config.Parse) map[str
 			continue
 		}
 
-		_, ok := hosts[name] // First host record wins.
-		if !ok {
-			hosts[name] = attrs
+		for _, role := range strings.Split(attrs.Role, ",") {
+			for _, srv := range strings.Split(attrs.Srv, ",") {
+				hosts[name] = append(hosts[name], &types.TXTAttrs{
+					OS:   attrs.OS,
+					Env:  attrs.Env,
+					Role: role,
+					Srv:  srv,
+				})
+			}
 		}
 	}
 

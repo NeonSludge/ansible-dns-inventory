@@ -72,52 +72,48 @@ func (n *Node) MarshalYAML() (interface{}, error) {
 }
 
 // Load a list of hosts into the inventory tree, using this node as root.
-func (n *Node) ImportHosts(hosts map[string]*types.TXTAttrs, pc *config.Parse) {
+func (n *Node) ImportHosts(hosts map[string][]*types.TXTAttrs, pc *config.Parse) {
 	sep := pc.KeySeparator
 
 	for host, attrs := range hosts {
-		// Create an environment list for this host. Add the root environment, if necessary.
-		envs := make(map[string]bool)
-		envs[attrs.Env] = true
-		envs[ansibleRootGroup] = true
+		for _, attr := range attrs {
+			// Create an environment list for this host. Add the root environment, if necessary.
+			envs := make(map[string]bool)
+			envs[attr.Env] = true
+			envs[ansibleRootGroup] = true
 
-		// Iterate the environments.
-		for env := range envs {
-			// Iterate the roles.
-			for _, role := range strings.Split(attrs.Role, ",") {
-				// Iterate the services.
-				for _, srv := range strings.Split(attrs.Srv, ",") {
-					// Environment: root>environment
-					envNode := n.AddChild(env)
+			// Iterate the environments.
+			for env := range envs {
+				// Environment: root>environment
+				envNode := n.AddChild(env)
 
-					// Role: root>environment>role
-					roleGroup := fmt.Sprintf("%s%s%s", env, sep, role)
-					roleGroupNode := envNode.AddChild(roleGroup)
+				// Role: root>environment>role
+				roleGroup := fmt.Sprintf("%s%s%s", env, sep, attr.Role)
+				roleGroupNode := envNode.AddChild(roleGroup)
 
-					// Service: root>environment>role>service[1]>...>service[N].
-					srvGroup := roleGroup
-					srvGroupNode := roleGroupNode
-					for i, s := range strings.Split(srv, sep) {
-						if len(s) > 0 && (i == 0 || env != ansibleRootGroup || attrs.Env == ansibleRootGroup) {
-							group := fmt.Sprintf("%s%s%s", srvGroup, sep, s)
-							node := srvGroupNode.AddChild(group)
-							srvGroup = group
-							srvGroupNode = node
-						}
+				// Service: root>environment>role>service[1]>...>service[N].
+				srvGroup := roleGroup
+				srvGroupNode := roleGroupNode
+				for i, srv := range strings.Split(attr.Srv, sep) {
+					if len(srv) > 0 && (i == 0 || env != ansibleRootGroup || attr.Env == ansibleRootGroup) {
+						group := fmt.Sprintf("%s%s%s", srvGroup, sep, srv)
+						node := srvGroupNode.AddChild(group)
+						srvGroup = group
+						srvGroupNode = node
 					}
-
-					// The last service group holds the host.
-					srvGroupNode.AddHost(host)
-
-					// Host: root>environment>host
-					hostGroupNode := envNode.AddChild(fmt.Sprintf("%s%shost", env, sep))
-
-					// OS: root>environment>host>os
-					osGroupNode := hostGroupNode.AddChild(fmt.Sprintf("%s%shost%s%s", env, sep, sep, attrs.OS))
-
-					// The OS group holds the host.
-					osGroupNode.AddHost(host)
 				}
+
+				// The last service group holds the host.
+				srvGroupNode.AddHost(host)
+
+				// Host: root>environment>host
+				hostGroupNode := envNode.AddChild(fmt.Sprintf("%s%shost", env, sep))
+
+				// OS: root>environment>host>os
+				osGroupNode := hostGroupNode.AddChild(fmt.Sprintf("%s%shost%s%s", env, sep, sep, attr.OS))
+
+				// The OS group holds the host.
+				osGroupNode.AddHost(host)
 			}
 		}
 	}
