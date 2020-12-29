@@ -72,8 +72,8 @@ func (n *Node) MarshalYAML() (interface{}, error) {
 }
 
 // Load a list of hosts into the inventory tree, using this node as root.
-func (n *Node) ImportHosts(hosts map[string][]*types.TXTAttrs, pc *config.Parse) {
-	sep := pc.KeySeparator
+func (n *Node) ImportHosts(hosts map[string][]*types.TXTAttrs, cfg *config.Main) {
+	sep := cfg.KeySeparator
 
 	for host, attrs := range hosts {
 		for _, attr := range attrs {

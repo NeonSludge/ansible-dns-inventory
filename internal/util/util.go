@@ -54,7 +54,7 @@ func SafeAttr(v interface{}, param string) error {
 }
 
 // Marshal returns the JSON or YAML encoding of v.
-func Marshal(v interface{}, format string, pc *config.Parse) ([]byte, error) {
+func Marshal(v interface{}, format string, cfg *config.Main) ([]byte, error) {
 	var bytes []byte
 	var err error
 
@@ -64,7 +64,7 @@ func Marshal(v interface{}, format string, pc *config.Parse) ([]byte, error) {
 	case "json":
 		bytes, err = json.Marshal(v)
 	default:
-		bytes, err = marshalYAMLFlow(v, format, pc)
+		bytes, err = marshalYAMLFlow(v, format, cfg)
 	}
 
 	if err != nil {
@@ -77,7 +77,7 @@ func Marshal(v interface{}, format string, pc *config.Parse) ([]byte, error) {
 // marshalYAMLFlow returns the flow-style YAML encoding of v which can be a map[string][]string or a map[string]*types.TXTAttrs.
 // It supports two formats of marshalling the values in the map: as a YAML list (format=yaml-list) and as a CSV string (format=yaml-csv).
 // TODO: deal with yaml.Marshal's issues with flow-style encoding and switch to using that instead of this hack.
-func marshalYAMLFlow(v interface{}, format string, pc *config.Parse) ([]byte, error) {
+func marshalYAMLFlow(v interface{}, format string, cfg *config.Main) ([]byte, error) {
 	buf := new(bytes.Buffer)
 
 	switch v := v.(type) {
@@ -105,7 +105,7 @@ func marshalYAMLFlow(v interface{}, format string, pc *config.Parse) ([]byte, er
 
 			switch format {
 			case "yaml-flow":
-				yaml = fmt.Sprintf("{\"%s\": \"%s\", \"%s\": \"%s\", \"%s\": \"%s\", \"%s\": \"%s\"}", pc.KeyOs, value.OS, pc.KeyEnv, value.Env, pc.KeyRole, value.Role, pc.KeySrv, value.Srv)
+				yaml = fmt.Sprintf("{\"%s\": \"%s\", \"%s\": \"%s\", \"%s\": \"%s\", \"%s\": \"%s\"}", cfg.KeyOs, value.OS, cfg.KeyEnv, value.Env, cfg.KeyRole, value.Role, cfg.KeySrv, value.Srv)
 			default:
 				return buf.Bytes(), fmt.Errorf("unsupported format: %s", format)
 			}

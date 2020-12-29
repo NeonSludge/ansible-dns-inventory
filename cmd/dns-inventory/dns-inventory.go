@@ -34,12 +34,10 @@ func main() {
 
 	if !*hostFlag {
 		// Initialize and load configuration.
-		config.Init()
-		cfgDNS := config.NewDNS()
-		cfgParse := config.NewParse()
+		cfg := config.New()
 
 		// Acquire TXT records.
-		records := dns.GetTXTRecords(cfgDNS)
+		records := dns.GetTXTRecords(cfg)
 		if len(records) == 0 {
 			log.Fatal("empty TXT records list")
 		}
@@ -48,8 +46,8 @@ func main() {
 		inventory := &tree.Node{Name: ansibleRootGroup, Parent: &tree.Node{}, Children: make([]*tree.Node, 0), Hosts: make(map[string]bool)}
 
 		// Load DNS records into the inventory tree.
-		hosts := dns.ParseTXTRecords(records, cfgDNS, cfgParse)
-		inventory.ImportHosts(hosts, cfgParse)
+		hosts := dns.ParseTXTRecords(records, cfg)
+		inventory.ImportHosts(hosts, cfg)
 		inventory.SortChildren()
 
 		// Export the inventory tree in various formats.
@@ -63,11 +61,11 @@ func main() {
 			inventory.ExportInventory(export)
 
 			// Marshal the map into a JSON representation of an Ansible inventory.
-			bytes, err = util.Marshal(export, "json", cfgParse)
+			bytes, err = util.Marshal(export, "json", cfg)
 		case *attrsFlag:
-			bytes, err = util.Marshal(hosts, *formatFlag, cfgParse)
+			bytes, err = util.Marshal(hosts, *formatFlag, cfg)
 		case *treeFlag:
-			bytes, err = util.Marshal(inventory, *formatFlag, cfgParse)
+			bytes, err = util.Marshal(inventory, *formatFlag, cfg)
 		default:
 			export := make(map[string][]string)
 
@@ -79,7 +77,7 @@ func main() {
 				inventory.ExportGroups(export)
 			}
 
-			bytes, err = util.Marshal(export, *formatFlag, cfgParse)
+			bytes, err = util.Marshal(export, *formatFlag, cfg)
 		}
 
 		if err != nil {
