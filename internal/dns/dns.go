@@ -21,8 +21,15 @@ const (
 	dnsRrTxtField int = 1
 )
 
+func init() {
+	// Setup struct validators.
+	if err := validator.SetValidationFunc("safe", util.SafeAttr); err != nil {
+		panic(errors.Wrap(err, "validator initialization error"))
+	}
+}
+
 // Acquire DNS records from a remote DNS server.
-func GetTXTRecords(c *config.DNS) []dns.RR {
+func GetTXTRecords(c *config.Main) []dns.RR {
 	records := make([]dns.RR, 0)
 
 	for _, zone := range c.Zones {
@@ -111,21 +118,21 @@ func GetInventoryRecord(server string, domain string, host string, timeout strin
 	return records, nil
 }
 
-// Parse zone transfer results and create a map of hosts and their attributes.
-func ParseTXTRecords(records []dns.RR, dc *config.DNS, pc *config.Parse) map[string]*types.TXTAttrs {
-	hosts := make(map[string]*types.TXTAttrs)
+// Parse zone transfer results and map hosts to lists of their attributes.
+func ParseTXTRecords(records []dns.RR, cfg *config.Main) map[string][]*types.TXTAttrs {
+	hosts := make(map[string][]*types.TXTAttrs)
 
 	for _, rr := range records {
 		var name string
 		var attrs *types.TXTAttrs
 		var err error
 
-		if dc.NoTx {
-			name = strings.TrimSuffix(strings.Split(dns.Field(rr, dnsRrTxtField), dc.NoTxSeparator)[0], ".")
-			attrs, err = ParseAttributes(strings.Split(dns.Field(rr, dnsRrTxtField), dc.NoTxSeparator)[1], pc)
+		if cfg.NoTx {
+			name = strings.TrimSuffix(strings.Split(dns.Field(rr, dnsRrTxtField), cfg.NoTxSeparator)[0], ".")
+			attrs, err = ParseAttributes(strings.Split(dns.Field(rr, dnsRrTxtField), cfg.NoTxSeparator)[1], cfg)
 		} else {
 			name = strings.TrimSuffix(rr.Header().Name, ".")
-			attrs, err = ParseAttributes(dns.Field(rr, dnsRrTxtField), pc)
+			attrs, err = ParseAttributes(dns.Field(rr, dnsRrTxtField), cfg)
 		}
 
 		if err != nil {
@@ -133,9 +140,15 @@ func ParseTXTRecords(records []dns.RR, dc *config.DNS, pc *config.Parse) map[str
 			continue
 		}
 
-		_, ok := hosts[name] // First host record wins.
-		if !ok {
-			hosts[name] = attrs
+		for _, role := range strings.Split(attrs.Role, ",") {
+			for _, srv := range strings.Split(attrs.Srv, ",") {
+				hosts[name] = append(hosts[name], &types.TXTAttrs{
+					OS:   attrs.OS,
+					Env:  attrs.Env,
+					Role: role,
+					Srv:  srv,
+				})
+			}
 		}
 	}
 
@@ -143,27 +156,22 @@ func ParseTXTRecords(records []dns.RR, dc *config.DNS, pc *config.Parse) map[str
 }
 
 // Parse host attributes.
-func ParseAttributes(raw string, pc *config.Parse) (*types.TXTAttrs, error) {
+func ParseAttributes(raw string, cfg *config.Main) (*types.TXTAttrs, error) {
 	attrs := &types.TXTAttrs{}
-	items := strings.Split(raw, pc.KvSeparator)
+	items := strings.Split(raw, cfg.KvSeparator)
 
 	for _, item := range items {
-		kv := strings.Split(item, pc.KvEquals)
+		kv := strings.Split(item, cfg.KvEquals)
 		switch kv[0] {
-		case pc.KeyOs:
+		case cfg.KeyOs:
 			attrs.OS = kv[1]
-		case pc.KeyEnv:
+		case cfg.KeyEnv:
 			attrs.Env = kv[1]
-		case pc.KeyRole:
+		case cfg.KeyRole:
 			attrs.Role = kv[1]
-		case pc.KeySrv:
+		case cfg.KeySrv:
 			attrs.Srv = kv[1]
 		}
-	}
-
-	// Setup struct validators.
-	if err := validator.SetValidationFunc("safe", util.SafeAttr); err != nil {
-		return attrs, errors.Wrap(err, "validator initialization error")
 	}
 
 	if err := validator.Validate(attrs); err != nil {

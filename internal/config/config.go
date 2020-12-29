@@ -9,8 +9,8 @@ import (
 )
 
 type (
-	// DNS server configuration.
-	DNS struct {
+	// Main configuration.
+	Main struct {
 		// DNS server address.
 		Address string
 		// Network timeout for DNS requests.
@@ -23,10 +23,6 @@ type (
 		NoTxHost string
 		// Separator between a hostname and an attribute string in a TXT record.
 		NoTxSeparator string
-	}
-
-	// TXT attribute parsing configuration
-	Parse struct {
 		// Separator between k/v pairs found in TXT records.
 		KvSeparator string
 		// Separator between a key and a value.
@@ -44,18 +40,14 @@ type (
 	}
 )
 
-// load DNS server configuration.
-func (c *DNS) load() {
+// Load configuration.
+func (c *Main) load() {
 	c.Address = viper.GetString("dns.server")
 	c.Timeout = viper.GetString("dns.timeout")
 	c.Zones = viper.GetStringSlice("dns.zones")
 	c.NoTx = viper.GetBool("dns.notransfer.enabled")
 	c.NoTxHost = viper.GetString("dns.notransfer.host")
 	c.NoTxSeparator = viper.GetString("dns.notransfer.separator")
-}
-
-// load TXT attribute parsing configuration
-func (c *Parse) load() {
 	c.KvSeparator = viper.GetString("txt.kv.separator")
 	c.KvEquals = viper.GetString("txt.kv.equalsign")
 	c.KeySeparator = viper.GetString("txt.keys.separator")
@@ -65,7 +57,7 @@ func (c *Parse) load() {
 	c.KeySrv = viper.GetString("txt.keys.srv")
 }
 
-func Init() {
+func New() *Main {
 	// Load YAML configuration.
 	path, ok := os.LookupEnv("ADI_CONFIG_FILE")
 	if ok {
@@ -108,17 +100,8 @@ func Init() {
 	viper.SetDefault("txt.keys.env", "ENV")
 	viper.SetDefault("txt.keys.role", "ROLE")
 	viper.SetDefault("txt.keys.srv", "SRV")
-}
 
-func NewDNS() *DNS {
-	cfg := &DNS{}
-	cfg.load()
-
-	return cfg
-}
-
-func NewParse() *Parse {
-	cfg := &Parse{}
+	cfg := &Main{}
 	cfg.load()
 
 	return cfg
