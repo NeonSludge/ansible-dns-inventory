@@ -7,8 +7,8 @@ import (
 )
 
 type (
-	// Host attributes found in its TXT record.
-	TXTAttrs struct {
+	// Attributes represents host attributes found in TXT records.
+	Attributes struct {
 		// Host operating system identifier.
 		OS string `validate:"nonzero,safe"`
 		// Host environment identifier.
@@ -19,7 +19,7 @@ type (
 		Srv string `validate:"safe=srv"`
 	}
 
-	// A JSON inventory representation of an Ansible group.
+	// InventoryGroup is an Ansible group ready to be marshalled into a JSON representation.
 	InventoryGroup struct {
 		// Group chilren.
 		Children []string `json:"children,omitempty"`
@@ -28,7 +28,8 @@ type (
 	}
 )
 
-func (a *TXTAttrs) MarshalJSON() ([]byte, error) {
+// MarshalJSON implements a custom JSON Marshaller for host attributes.
+func (a *Attributes) MarshalJSON() ([]byte, error) {
 	attrs := make(map[string]string)
 
 	attrs[viper.GetString("txt.keys.os")] = a.OS
@@ -39,7 +40,8 @@ func (a *TXTAttrs) MarshalJSON() ([]byte, error) {
 	return json.Marshal(attrs)
 }
 
-func (a *TXTAttrs) MarshalYAML() (interface{}, error) {
+// MarshalYAML implements a custom YAML Marshaller for host attributes.
+func (a *Attributes) MarshalYAML() (interface{}, error) {
 	attrs := make(map[string]string)
 
 	attrs[viper.GetString("txt.keys.os")] = a.OS

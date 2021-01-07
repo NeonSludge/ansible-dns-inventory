@@ -9,7 +9,7 @@ import (
 )
 
 type (
-	// Main configuration.
+	// Main contains configuration options of ansible-dns-inventory.
 	Main struct {
 		// DNS server address.
 		Address string
@@ -40,7 +40,6 @@ type (
 	}
 )
 
-// Load configuration.
 func (c *Main) load() {
 	c.Address = viper.GetString("dns.server")
 	c.Timeout = viper.GetString("dns.timeout")
@@ -57,6 +56,7 @@ func (c *Main) load() {
 	c.KeySrv = viper.GetString("txt.keys.srv")
 }
 
+// New initializes and loads the configuration.
 func New() *Main {
 	// Load YAML configuration.
 	path, ok := os.LookupEnv("ADI_CONFIG_FILE")

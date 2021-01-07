@@ -41,7 +41,7 @@ func main() {
 		inventory := tree.New()
 
 		// Load DNS records into the inventory tree.
-		hosts := dns.ParseTXTRecords(records, cfg)
+		hosts := dns.ParseRecords(records, cfg)
 		inventory.ImportHosts(hosts, cfg)
 		inventory.SortChildren()
 

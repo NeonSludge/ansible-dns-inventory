@@ -17,7 +17,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// Validate host attributes.
+// SafeAttr validate host attributes.
 func SafeAttr(v interface{}, param string) error {
 	value := reflect.ValueOf(v)
 	if value.Kind() != reflect.String {
@@ -99,7 +99,7 @@ func marshalYAMLFlow(v interface{}, format string, cfg *config.Main) ([]byte, er
 				return buf.Bytes(), err
 			}
 		}
-	case map[string][]*types.TXTAttrs:
+	case map[string][]*types.Attributes:
 		for key, value := range v {
 			var yaml []string
 			for _, attrs := range value {

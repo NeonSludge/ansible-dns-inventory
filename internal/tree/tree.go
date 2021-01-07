@@ -16,7 +16,7 @@ const (
 )
 
 type (
-	// Inventory tree node. Represents an Ansible group.
+	// Node represents an inventory tree node.
 	Node struct {
 		// Group name.
 		Name string
@@ -28,7 +28,7 @@ type (
 		Hosts map[string]bool
 	}
 
-	// Inventory tree node for the tree export mode.
+	// ExportNode represents an inventory tree node for the tree export mode.
 	ExportNode struct {
 		// Group name.
 		Name string `json:"name" yaml:"name"`
@@ -71,8 +71,8 @@ func (n *Node) MarshalYAML() (interface{}, error) {
 	}, nil
 }
 
-// Load a list of hosts into the inventory tree, using this node as root.
-func (n *Node) ImportHosts(hosts map[string][]*types.TXTAttrs, cfg *config.Main) {
+// ImportHosts loads a map of hosts and their attributes into the inventory tree, using this node as root.
+func (n *Node) ImportHosts(hosts map[string][]*types.Attributes, cfg *config.Main) {
 	sep := cfg.KeySeparator
 
 	for host, attrs := range hosts {
@@ -119,7 +119,7 @@ func (n *Node) ImportHosts(hosts map[string][]*types.TXTAttrs, cfg *config.Main)
 	}
 }
 
-// Collect all ancestor nodes, starting from this node.
+// GetAncestors returns all ancestor nodes, starting from this node.
 func (n *Node) GetAncestors() []*Node {
 	ancestors := make([]*Node, 0)
 
@@ -135,7 +135,7 @@ func (n *Node) GetAncestors() []*Node {
 	return ancestors
 }
 
-// Collect all hosts from descendant groups, starting from this node.
+// GetAllHosts returns all hosts from descendant groups, starting from this node.
 func (n *Node) GetAllHosts() map[string]bool {
 	result := make(map[string]bool)
 
@@ -158,7 +158,7 @@ func (n *Node) GetAllHosts() map[string]bool {
 	return result
 }
 
-// Add a child of this node if it doesn't exist and return a pointer to the child.
+// AddChild adds a child to this node if it doesn't exist and return a pointer to the child.
 func (n *Node) AddChild(name string) *Node {
 	if n.Name == name {
 		return n
@@ -176,12 +176,12 @@ func (n *Node) AddChild(name string) *Node {
 	return node
 }
 
-// Add a host to this node.
+// AddHost adds a host to this node.
 func (n *Node) AddHost(host string) {
 	n.Hosts[host] = true
 }
 
-// Sort children by name recursively, strating from this node.
+// SortChildren sorts children by name recursively, starting from this node.
 func (n *Node) SortChildren() {
 	if len(n.Children) > 0 {
 		sort.Slice(n.Children, func(i, j int) bool { return n.Children[i].Name < n.Children[j].Name })
@@ -192,7 +192,7 @@ func (n *Node) SortChildren() {
 	}
 }
 
-// Export the inventory tree to a map ready to be marshalled into a JSON representation of an Ansible inventory, starting from this node.
+// ExportInventory exports the inventory tree into a map ready to be marshalled into a JSON representation of an Ansible inventory, starting from this node.
 func (n *Node) ExportInventory(inventory map[string]*types.InventoryGroup) {
 	// Collect node children.
 	children := make([]string, 0, len(n.Children))
@@ -218,7 +218,7 @@ func (n *Node) ExportInventory(inventory map[string]*types.InventoryGroup) {
 	}
 }
 
-// Export the inventory tree to a map of hosts and groups the belong to, starting from this node.
+// ExportHosts exports the inventory tree into a map of hosts and groups they belong to, starting from this node.
 func (n *Node) ExportHosts(hosts map[string][]string) {
 	// Collect a list of unique group names for every host owned by this node.
 	for host := range n.Hosts {
@@ -258,7 +258,7 @@ func (n *Node) ExportHosts(hosts map[string][]string) {
 	}
 }
 
-// Export the inventory tree to a map of groups and hosts they contain, starting from this node.
+// ExportGroups exports the inventory tree into a map of groups and hosts they contain, starting from this node.
 func (n *Node) ExportGroups(groups map[string][]string) {
 	hosts := make([]string, 0)
 
@@ -279,7 +279,7 @@ func (n *Node) ExportGroups(groups map[string][]string) {
 	}
 }
 
-// Returns a new inventory tree
+// New returns an empty inventory tree
 func New() *Node {
 	return &Node{Name: ansibleRootGroup, Parent: &Node{}, Children: make([]*Node, 0), Hosts: make(map[string]bool)}
 }

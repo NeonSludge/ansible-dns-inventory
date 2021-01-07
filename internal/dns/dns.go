@@ -28,7 +28,7 @@ func init() {
 	}
 }
 
-// Acquire DNS records from a remote DNS server.
+// GetTXTRecords acquires DNS records from a remote DNS server.
 func GetTXTRecords(c *config.Main) []dns.RR {
 	records := make([]dns.RR, 0)
 
@@ -53,7 +53,7 @@ func GetTXTRecords(c *config.Main) []dns.RR {
 	return records
 }
 
-// Perform a DNS zone transfer (AXFR), return the results.
+// TransferZone performs a DNS zone transfer (AXFR).
 func TransferZone(server string, domain string, notxName string, timeout string) ([]dns.RR, error) {
 	records := make([]dns.RR, 0)
 
@@ -91,7 +91,7 @@ func TransferZone(server string, domain string, notxName string, timeout string)
 	return records, nil
 }
 
-// Acquire TXT records of a special host (no-transfer mode).
+// GetInventoryRecord acquires TXT records of a special host for the no-transfer mode.
 func GetInventoryRecord(server string, domain string, host string, timeout string) ([]dns.RR, error) {
 	records := make([]dns.RR, 0)
 	name := fmt.Sprintf("%s.%s", host, dns.Fqdn(domain))
@@ -118,13 +118,13 @@ func GetInventoryRecord(server string, domain string, host string, timeout strin
 	return records, nil
 }
 
-// Parse zone transfer results and map hosts to lists of their attributes.
-func ParseTXTRecords(records []dns.RR, cfg *config.Main) map[string][]*types.TXTAttrs {
-	hosts := make(map[string][]*types.TXTAttrs)
+// ParseRecords parses TXT records and maps hosts to lists of their attributes.
+func ParseRecords(records []dns.RR, cfg *config.Main) map[string][]*types.Attributes {
+	hosts := make(map[string][]*types.Attributes)
 
 	for _, rr := range records {
 		var name string
-		var attrs *types.TXTAttrs
+		var attrs *types.Attributes
 		var err error
 
 		if cfg.NoTx {
@@ -142,7 +142,7 @@ func ParseTXTRecords(records []dns.RR, cfg *config.Main) map[string][]*types.TXT
 
 		for _, role := range strings.Split(attrs.Role, ",") {
 			for _, srv := range strings.Split(attrs.Srv, ",") {
-				hosts[name] = append(hosts[name], &types.TXTAttrs{
+				hosts[name] = append(hosts[name], &types.Attributes{
 					OS:   attrs.OS,
 					Env:  attrs.Env,
 					Role: role,
@@ -155,9 +155,9 @@ func ParseTXTRecords(records []dns.RR, cfg *config.Main) map[string][]*types.TXT
 	return hosts
 }
 
-// Parse host attributes.
-func ParseAttributes(raw string, cfg *config.Main) (*types.TXTAttrs, error) {
-	attrs := &types.TXTAttrs{}
+// ParseAttributes parses host attributes.
+func ParseAttributes(raw string, cfg *config.Main) (*types.Attributes, error) {
+	attrs := &types.Attributes{}
 	items := strings.Split(raw, cfg.KvSeparator)
 
 	for _, item := range items {
