@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/NeonSludge/ansible-dns-inventory/internal/build"
 	"github.com/NeonSludge/ansible-dns-inventory/internal/config"
 	"github.com/NeonSludge/ansible-dns-inventory/internal/dns"
 	"github.com/NeonSludge/ansible-dns-inventory/internal/tree"
@@ -25,6 +26,7 @@ func main() {
 	treeFlag := flag.Bool("tree", false, "export raw inventory tree")
 	formatFlag := flag.String("format", "yaml", "select export format, if available")
 	hostFlag := flag.Bool("host", false, "a stub for Ansible")
+	versionFlag := flag.Bool("version", false, "display ansible-dns-inventory version and build info")
 	flag.Parse()
 
 	if !*hostFlag {
@@ -49,6 +51,9 @@ func main() {
 		var bytes []byte
 		var err error
 		switch {
+		case *versionFlag:
+			fmt.Println("version:", build.Version)
+			fmt.Println("build time:", build.Time)
 		case *listFlag:
 			export := make(map[string]*types.InventoryGroup)
 
