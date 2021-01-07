@@ -16,7 +16,7 @@ For this to work you must ensure that:
 
 ### Usage
 ```
-Usage of ./dns-inventory:
+Usage of dns-inventory:
   -attrs
         export host attributes
   -format string
@@ -29,6 +29,10 @@ Usage of ./dns-inventory:
         export hosts
   -list
         produce a JSON inventory for Ansible
+  -tree
+        export raw inventory tree
+  -version
+        display ansible-dns-inventory version and build info
 ```
 
 ### TXT record format
