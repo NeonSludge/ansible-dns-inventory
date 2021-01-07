@@ -278,3 +278,8 @@ func (n *Node) ExportGroups(groups map[string][]string) {
 		}
 	}
 }
+
+// Returns a new inventory tree
+func New() *Node {
+	return &Node{Name: ansibleRootGroup, Parent: &Node{}, Children: make([]*Node, 0), Hosts: make(map[string]bool)}
+}

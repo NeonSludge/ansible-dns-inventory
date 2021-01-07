@@ -13,11 +13,6 @@ import (
 	"github.com/NeonSludge/ansible-dns-inventory/internal/util"
 )
 
-const (
-	// Ansible root group name.
-	ansibleRootGroup string = "all"
-)
-
 func main() {
 	// Setup logging.
 	log.SetOutput(os.Stderr)
@@ -43,7 +38,7 @@ func main() {
 		}
 
 		// Initialize the inventory tree.
-		inventory := &tree.Node{Name: ansibleRootGroup, Parent: &tree.Node{}, Children: make([]*tree.Node, 0), Hosts: make(map[string]bool)}
+		inventory := tree.New()
 
 		// Load DNS records into the inventory tree.
 		hosts := dns.ParseTXTRecords(records, cfg)
