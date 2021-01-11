@@ -28,8 +28,8 @@ func init() {
 	}
 }
 
-// GetTXTRecords acquires DNS records from a remote DNS server.
-func GetTXTRecords(c *config.Main) []dns.RR {
+// GetRecords acquires DNS records from a remote DNS server.
+func GetRecords(c *config.Main) []dns.RR {
 	records := make([]dns.RR, 0)
 
 	for _, zone := range c.Zones {

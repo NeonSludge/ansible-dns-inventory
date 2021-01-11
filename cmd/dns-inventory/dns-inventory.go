@@ -34,7 +34,7 @@ func main() {
 		cfg := config.New()
 
 		// Acquire TXT records.
-		records := dns.GetTXTRecords(cfg)
+		records := dns.GetRecords(cfg)
 		if len(records) == 0 {
 			log.Fatal("empty TXT records list")
 		}
