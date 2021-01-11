@@ -88,32 +88,22 @@ func (n *Node) ImportHosts(hosts map[string][]*types.Attributes, cfg *config.Mai
 				envNode := n.AddChild(env)
 
 				// Role: root>environment>role
-				roleGroup := fmt.Sprintf("%s%s%s", env, sep, attr.Role)
-				roleGroupNode := envNode.AddChild(roleGroup)
+				groupName := fmt.Sprintf("%s%s%s", env, sep, attr.Role)
+				groupNode := envNode.AddChild(groupName)
 
 				// Service: root>environment>role>service[1]>...>service[N].
-				srvGroup := roleGroup
-				srvGroupNode := roleGroupNode
 				for i, srv := range strings.Split(attr.Srv, sep) {
 					if len(srv) > 0 && (i == 0 || env != ansibleRootGroup || attr.Env == ansibleRootGroup) {
-						group := fmt.Sprintf("%s%s%s", srvGroup, sep, srv)
-						node := srvGroupNode.AddChild(group)
-						srvGroup = group
-						srvGroupNode = node
+						groupName = fmt.Sprintf("%s%s%s", groupName, sep, srv)
+						groupNode = groupNode.AddChild(groupName)
 					}
 				}
 
 				// The last service group holds the host.
-				srvGroupNode.AddHost(host)
+				groupNode.AddHost(host)
 
-				// Host: root>environment>host
-				hostGroupNode := envNode.AddChild(fmt.Sprintf("%s%shost", env, sep))
-
-				// OS: root>environment>host>os
-				osGroupNode := hostGroupNode.AddChild(fmt.Sprintf("%s%shost%s%s", env, sep, sep, attr.OS))
-
-				// The OS group holds the host.
-				osGroupNode.AddHost(host)
+				// Special groups: [root_]<environment>_host, [root_]<environment>_host_<os>
+				envNode.AddChild(fmt.Sprintf("%s%shost", env, sep)).AddChild(fmt.Sprintf("%s%shost%s%s", env, sep, sep, attr.OS)).AddHost(host)
 			}
 		}
 	}
