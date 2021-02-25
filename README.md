@@ -23,8 +23,8 @@ Usage of dns-inventory:
         select export format, if available (default "yaml")
   -groups
         export groups
-  -host
-        a stub for Ansible
+  -host string
+        produce a JSON dictionary of host variables for Ansible
   -hosts
         export hosts
   -list
@@ -46,12 +46,12 @@ Here is an example of using both of these ways:
 #### Example of a TXT record (regular mode)
 | Host                  | TXT record                                          |
 | --------------------- | --------------------------------------------------- |
-| `app01.infra.local`   | `OS=linux;ENV=dev;ROLE=app;SRV=tomcat_backend_auth` |
+| `app01.infra.local`   | `OS=linux;ENV=dev;ROLE=app;SRV=tomcat_backend_auth;VARS=key1=value1,key2=value2` |
 
 #### Example of a TXT record (no-transfer mode)
 | Host                                | TXT record                                                            |
 | ----------------------------------- | --------------------------------------------------------------------- |
-| `ansible-dns-inventory.infra.local` | `app01.infra.local:OS=linux;ENV=dev;ROLE=app;SRV=tomcat_backend_auth` |
+| `ansible-dns-inventory.infra.local` | `app01.infra.local:OS=linux;ENV=dev;ROLE=app;SRV=tomcat_backend_auth;VARS=key1=value1,key2=value2` |
 
 The separator between the hostname and the attribute string in the no-transfer mode is customizable (the `dns.notransfer.separator` parameter).
 
@@ -62,9 +62,15 @@ The separator between the hostname and the attribute string in the no-transfer m
 | ENV  | Environment identifier.                                                                                                                                     |
 | ROLE | Host role identifier(s). Can be a comma-delimited list.                                                                                                     |
 | SRV  | Host service identifier(s). This will be split further using the `txt.keys.separator` to produce a hierarchy of groups. Can also be a comma-delimited list. |
+| VARS | Optional host variables.                                                                                                                                    |
 
 Key names and separators are customizable via `ansible-dns-inventory`'s config file.
 Key values are validated and can only contain numbers and letters of the Latin alphabet, except for the service identifier(s) which can also contain the `txt.keys.separator` symbol.
+
+#### Host variables
+`ansible-dns-inventory` supports passing additional host variables to Ansible via the `VARS` attribute. This feature is disabled by default, you can enable it by setting the `txt.vars.enabled` parameter to `true`.
+This is meant to be used in cases where storing some Ansible host variables directly in TXT records could be a good idea. For example, you might put variables like `ansible_user` there.
+This feature adds an additional DNS request for every host in your inventory so be careful using it with large inventories.
 
 ### Config file
 
