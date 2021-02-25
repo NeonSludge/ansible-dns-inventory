@@ -25,25 +25,27 @@ func main() {
 	groupsFlag := flag.Bool("groups", false, "export groups")
 	treeFlag := flag.Bool("tree", false, "export raw inventory tree")
 	formatFlag := flag.String("format", "yaml", "select export format, if available")
-	hostFlag := flag.Bool("host", false, "a stub for Ansible")
+	hostFlag := flag.String("host", "", "a stub for Ansible")
 	versionFlag := flag.Bool("version", false, "display ansible-dns-inventory version and build info")
 	flag.Parse()
 
-	if !*hostFlag {
-		// Initialize and load configuration.
-		cfg := config.New()
+	// Initialize and load configuration.
+	cfg := config.New()
 
+	if len(*hostFlag) == 0 {
 		// Acquire TXT records.
 		records := dns.GetRecords(cfg)
 		if len(records) == 0 {
 			log.Fatal("empty TXT records list")
 		}
 
+		// Parse TXT records.
+		hosts := dns.ParseRecords(records, cfg)
+
 		// Initialize the inventory tree.
 		inventory := tree.New()
 
 		// Load DNS records into the inventory tree.
-		hosts := dns.ParseRecords(records, cfg)
 		inventory.ImportHosts(hosts, cfg)
 		inventory.SortChildren()
 
@@ -80,6 +82,23 @@ func main() {
 			bytes, err = util.Marshal(export, *formatFlag, cfg)
 		}
 
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		fmt.Println(string(bytes))
+	} else if len(*hostFlag) > 0 && cfg.VarsEnabled {
+		// Acquire host TXT records.
+		records, err := dns.GetHostRecord(cfg.Address, "", *hostFlag, cfg.Timeout)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// Parse host TXT records.
+		attrs := dns.ParseRecords(records, cfg)[*hostFlag]
+
+		// Parse host variables.
+		bytes, err := dns.ParseVariables(attrs, cfg)
 		if err != nil {
 			log.Fatal(err)
 		}

@@ -37,6 +37,8 @@ func SafeAttr(v interface{}, param string) error {
 		re += "\\,\\" + separator + "]*$"
 	case "list":
 		re += "\\," + "]*$"
+	case "vars":
+		re = "^[[:print:]]*$"
 	default:
 		re += "]*$"
 	}

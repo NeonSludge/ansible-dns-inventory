@@ -17,6 +17,8 @@ type (
 		Role string `validate:"nonzero,safe=list"`
 		// Host service identifier.
 		Srv string `validate:"safe=srv"`
+		// Host variables
+		Vars string `validate:"safe=vars"`
 	}
 
 	// InventoryGroup is an Ansible group ready to be marshalled into a JSON representation.

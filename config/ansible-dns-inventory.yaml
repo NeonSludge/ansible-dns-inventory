@@ -22,6 +22,14 @@ txt:
     separator: ";"
     # Separator between a key and a value. Environment variable: ADI_TXT_KV_EQUALSIGN
     equalsign: "="
+  # Host variables parsing configuration.
+  vars:
+    # Enable host variables support. Environment variable: ADI_TXT_VARS_ENABLED
+    enabled: false
+    # Separator between k/v pairs found in the host variables attribute. Environment variable: ADI_TXT_VARS_SEPARATOR
+    separator: ","
+    # Separator between a key and a value. Environment variable: ADI_TXT_VARS_EQUALSIGN
+    equalsign: "="
   # Host attribute parsing configuration
   keys:
     # Separator between elements of an Ansible group name. Environment variable: ADI_TXT_KEYS_SEPARATOR
@@ -34,3 +42,5 @@ txt:
     role: "ROLE"
     # Key name of the attribute containing the host service identifier. Environment variable: ADI_TXT_KEYS_SRV
     srv: "SRV"
+    # Key name of the attribute containing the host variables. Environment variable: ADI_TXT_KEYS_VARS
+    vars: "VARS"

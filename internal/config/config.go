@@ -17,16 +17,22 @@ type (
 		Timeout string
 		// DNS zone list.
 		Zones []string
-		// Enable no-transfer data retrieval mode.
+		// (no-transfer mode) Enable no-transfer data retrieval mode.
 		NoTx bool
-		// A host whose TXT records contain inventory data.
+		// (no-transfer mode) A host whose TXT records contain inventory data.
 		NoTxHost string
-		// Separator between a hostname and an attribute string in a TXT record.
+		// (no-transfer mode) Separator between a hostname and an attribute string in a TXT record.
 		NoTxSeparator string
-		// Separator between k/v pairs found in TXT records.
+		// (TXT records parsing) Separator between k/v pairs.
 		KvSeparator string
-		// Separator between a key and a value.
+		// (TXT records parsing) Separator between a key and a value.
 		KvEquals string
+		// (Host variables parsing) Enable host variables support.
+		VarsEnabled bool
+		// (Host variables parsing) Separator between k/v pairs.
+		VarsSeparator string
+		// (Host variables parsing) Separator between a key and a value.
+		VarsEquals string
 		// Separator between elements of an Ansible group name.
 		KeySeparator string
 		// Key name of the attribute containing the host operating system identifier.
@@ -37,6 +43,8 @@ type (
 		KeyRole string
 		// Key name of the attribute containing the host service identifier.
 		KeySrv string
+		// Key name of the attribute containing the host variables.
+		KeyVars string
 	}
 )
 
@@ -49,11 +57,15 @@ func (c *Main) load() {
 	c.NoTxSeparator = viper.GetString("dns.notransfer.separator")
 	c.KvSeparator = viper.GetString("txt.kv.separator")
 	c.KvEquals = viper.GetString("txt.kv.equalsign")
+	c.VarsEnabled = viper.GetBool("txt.vars.enabled")
+	c.VarsSeparator = viper.GetString("txt.vars.separator")
+	c.VarsEquals = viper.GetString("txt.vars.equalsign")
 	c.KeySeparator = viper.GetString("txt.keys.separator")
 	c.KeyOs = viper.GetString("txt.keys.os")
 	c.KeyEnv = viper.GetString("txt.keys.env")
 	c.KeyRole = viper.GetString("txt.keys.role")
 	c.KeySrv = viper.GetString("txt.keys.srv")
+	c.KeyVars = viper.GetString("txt.keys.vars")
 }
 
 // New initializes and loads the configuration.
@@ -95,11 +107,16 @@ func New() *Main {
 	viper.SetDefault("txt.kv.separator", ";")
 	viper.SetDefault("txt.kv.equalsign", "=")
 
+	viper.SetDefault("txt.vars.enabled", false)
+	viper.SetDefault("txt.vars.separator", ",")
+	viper.SetDefault("txt.vars.equalsign", "=")
+
 	viper.SetDefault("txt.keys.separator", "_")
 	viper.SetDefault("txt.keys.os", "OS")
 	viper.SetDefault("txt.keys.env", "ENV")
 	viper.SetDefault("txt.keys.role", "ROLE")
 	viper.SetDefault("txt.keys.srv", "SRV")
+	viper.SetDefault("txt.keys.vars", "VARS")
 
 	cfg := &Main{}
 	cfg.load()

@@ -1,6 +1,7 @@
 package dns
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
@@ -37,7 +38,7 @@ func GetRecords(c *config.Main) []dns.RR {
 		var err error
 
 		if c.NoTx {
-			rrs, err = GetInventoryRecord(c.Address, zone, c.NoTxHost, c.Timeout)
+			rrs, err = GetHostRecord(c.Address, zone, c.NoTxHost, c.Timeout)
 		} else {
 			rrs, err = TransferZone(c.Address, zone, c.NoTxHost, c.Timeout)
 		}
@@ -91,14 +92,14 @@ func TransferZone(server string, domain string, notxName string, timeout string)
 	return records, nil
 }
 
-// GetInventoryRecord acquires TXT records of a special host for the no-transfer mode.
-func GetInventoryRecord(server string, domain string, host string, timeout string) ([]dns.RR, error) {
+// GetHostRecord acquires TXT records of a specific host.
+func GetHostRecord(server string, domain string, host string, timeout string) ([]dns.RR, error) {
 	records := make([]dns.RR, 0)
 	name := fmt.Sprintf("%s.%s", host, dns.Fqdn(domain))
 
 	t, err := time.ParseDuration(timeout)
 	if err != nil {
-		return records, errors.Wrap(err, "inventory record loading failed")
+		return records, errors.Wrap(err, "record loading failed")
 	}
 	client := &dns.Client{
 		Timeout: t,
@@ -109,9 +110,9 @@ func GetInventoryRecord(server string, domain string, host string, timeout strin
 
 	rx, _, err := client.Exchange(msg, server)
 	if err != nil {
-		return records, errors.Wrap(err, "inventory record loading failed")
+		return records, errors.Wrap(err, "record loading failed")
 	} else if len(rx.Answer) == 0 {
-		return records, errors.Wrap(fmt.Errorf("not found: %s", name), "inventory record loading failed")
+		return records, errors.Wrap(fmt.Errorf("not found: %s", name), "record loading failed")
 	}
 	records = rx.Answer
 
@@ -171,6 +172,8 @@ func ParseAttributes(raw string, cfg *config.Main) (*types.Attributes, error) {
 			attrs.Role = kv[1]
 		case cfg.KeySrv:
 			attrs.Srv = kv[1]
+		case cfg.KeyVars:
+			attrs.Vars = strings.Join(kv[1:], cfg.KvEquals)
 		}
 	}
 
@@ -179,4 +182,27 @@ func ParseAttributes(raw string, cfg *config.Main) (*types.Attributes, error) {
 	}
 
 	return attrs, nil
+}
+
+// ParseVariables returns the JSON encoding of all host variables found in v.
+func ParseVariables(a []*types.Attributes, cfg *config.Main) ([]byte, error) {
+	vars := make(map[string]string)
+	var bytes []byte
+	var err error
+
+	for _, attrs := range a {
+		pairs := strings.Split(attrs.Vars, cfg.VarsSeparator)
+
+		for _, pair := range pairs {
+			kv := strings.Split(pair, cfg.VarsEquals)
+			vars[kv[0]] = kv[1]
+		}
+	}
+
+	bytes, err = json.Marshal(vars)
+	if err != nil {
+		return bytes, err
+	}
+
+	return bytes, nil
 }
