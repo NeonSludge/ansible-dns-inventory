@@ -107,7 +107,7 @@ func marshalYAMLFlow(v interface{}, format string, cfg *config.Main) ([]byte, er
 			for _, attrs := range value {
 				switch format {
 				case "yaml-flow":
-					yaml = append(yaml, fmt.Sprintf("{\"%s\": \"%s\", \"%s\": \"%s\", \"%s\": \"%s\", \"%s\": \"%s\"}", cfg.KeyOs, attrs.OS, cfg.KeyEnv, attrs.Env, cfg.KeyRole, attrs.Role, cfg.KeySrv, attrs.Srv))
+					yaml = append(yaml, fmt.Sprintf("{\"%s\": \"%s\", \"%s\": \"%s\", \"%s\": \"%s\", \"%s\": \"%s\", \"%s\": \"%s\"}", cfg.KeyOs, attrs.OS, cfg.KeyEnv, attrs.Env, cfg.KeyRole, attrs.Role, cfg.KeySrv, attrs.Srv, cfg.KeyVars, attrs.Vars))
 				default:
 					return buf.Bytes(), fmt.Errorf("unsupported format: %s", format)
 				}
