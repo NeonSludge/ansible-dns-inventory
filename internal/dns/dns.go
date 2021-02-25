@@ -152,6 +152,7 @@ func ParseRecords(records []dns.RR, cfg *config.Main) map[string][]*types.Attrib
 					Env:  attrs.Env,
 					Role: role,
 					Srv:  srv,
+					Vars: attrs.Vars,
 				})
 			}
 		}
