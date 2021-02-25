@@ -198,11 +198,13 @@ func ParseVariables(a []*types.Attributes, cfg *config.Main) ([]byte, error) {
 	var err error
 
 	for _, attrs := range a {
-		pairs := strings.Split(attrs.Vars, cfg.VarsSeparator)
+		if len(attrs.Vars) > 0 {
+			pairs := strings.Split(attrs.Vars, cfg.VarsSeparator)
 
-		for _, pair := range pairs {
-			kv := strings.Split(pair, cfg.VarsEquals)
-			vars[kv[0]] = kv[1]
+			for _, pair := range pairs {
+				kv := strings.Split(pair, cfg.VarsEquals)
+				vars[kv[0]] = kv[1]
+			}
 		}
 	}
 
