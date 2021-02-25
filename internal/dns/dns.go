@@ -95,7 +95,11 @@ func TransferZone(server string, domain string, notxName string, timeout string)
 // GetHostRecord acquires TXT records of a specific host.
 func GetHostRecord(server string, domain string, host string, timeout string) ([]dns.RR, error) {
 	records := make([]dns.RR, 0)
-	name := fmt.Sprintf("%s.%s", host, dns.Fqdn(domain))
+	name := host
+
+	if len(domain) > 0 {
+		name = fmt.Sprintf("%s.%s", host, dns.Fqdn(domain))
+	}
 
 	t, err := time.ParseDuration(timeout)
 	if err != nil {
