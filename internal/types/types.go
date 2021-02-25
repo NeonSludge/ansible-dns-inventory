@@ -38,6 +38,7 @@ func (a *Attributes) MarshalJSON() ([]byte, error) {
 	attrs[viper.GetString("txt.keys.env")] = a.Env
 	attrs[viper.GetString("txt.keys.role")] = a.Role
 	attrs[viper.GetString("txt.keys.srv")] = a.Srv
+	attrs[viper.GetString("txt.keys.vars")] = a.Vars
 
 	return json.Marshal(attrs)
 }
@@ -50,6 +51,7 @@ func (a *Attributes) MarshalYAML() (interface{}, error) {
 	attrs[viper.GetString("txt.keys.env")] = a.Env
 	attrs[viper.GetString("txt.keys.role")] = a.Role
 	attrs[viper.GetString("txt.keys.srv")] = a.Srv
+	attrs[viper.GetString("txt.keys.vars")] = a.Vars
 
 	return attrs, nil
 }
