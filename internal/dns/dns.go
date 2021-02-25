@@ -103,7 +103,7 @@ func GetHostRecord(server string, domain string, host string, timeout string) ([
 
 	t, err := time.ParseDuration(timeout)
 	if err != nil {
-		return records, errors.Wrapf(err, "record loading failed: %s", name)
+		return records, errors.Wrap(err, "record loading failed")
 	}
 	client := &dns.Client{
 		Timeout: t,
@@ -114,7 +114,7 @@ func GetHostRecord(server string, domain string, host string, timeout string) ([
 
 	rx, _, err := client.Exchange(msg, server)
 	if err != nil {
-		return records, errors.Wrapf(err, "record loading failed: %s", name)
+		return records, errors.Wrap(err, "record loading failed")
 	} else if len(rx.Answer) == 0 {
 		return records, errors.Wrap(fmt.Errorf("not found: %s", name), "record loading failed")
 	}
