@@ -69,9 +69,10 @@ Key values are validated and can only contain numbers and letters of the Latin a
 
 #### Host variables
 `ansible-dns-inventory` supports passing additional host variables to Ansible via the `VARS` attribute. This feature is disabled by default, you can enable it by setting the `txt.vars.enabled` parameter to `true`.
-This is meant to be used in cases where storing some Ansible host variables directly in TXT records could be a good idea. For example, you might put variables like `ansible_user` there.
-This feature adds an additional DNS request for every host in your inventory so be careful using it with large inventories.
-The no-transfer mode may have lower performance if host variables are used.
+This is meant to be used in cases where storing some Ansible host variables directly in TXT records could be a good idea. For example, you might want to put variables like `ansible_user` there.
+
+WARNING: This feature adds an additional DNS request for every host in your inventory so be careful when using it with large inventories.
+The no-transfer mode may particularly suffer a perfomance hit if host variables are used.
 
 ### Config file
 
@@ -200,6 +201,6 @@ $ dns-inventory -hosts -format yaml-csv
 
 $ dns-inventory -attrs -format yaml-flow
 ...
-"app01.infra.local": [{"OS": "linux", "ENV": "dev", "ROLE": "app", "SRV": "tomcat_backend_auth"}]
+"app01.infra.local": [{"OS": "linux", "ENV": "dev", "ROLE": "app", "SRV": "tomcat_backend_auth", "VARS: "key1=value1,key2=value2"}]
 ...
 ```
