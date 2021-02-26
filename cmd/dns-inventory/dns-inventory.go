@@ -89,7 +89,7 @@ func main() {
 		fmt.Println(string(bytes))
 	} else if len(*hostFlag) > 0 && cfg.VarsEnabled {
 		// Acquire host TXT records.
-		records, err := dns.GetHostRecord(cfg.Address, "", *hostFlag, cfg.Timeout)
+		records, err := dns.GetHostRecords(cfg, *hostFlag)
 		if err != nil {
 			log.Fatal(err)
 		}

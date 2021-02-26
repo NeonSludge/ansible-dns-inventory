@@ -30,17 +30,17 @@ func init() {
 }
 
 // GetRecords acquires DNS records from a remote DNS server.
-func GetRecords(c *config.Main) []dns.RR {
+func GetRecords(cfg *config.Main) []dns.RR {
 	records := make([]dns.RR, 0)
 
-	for _, zone := range c.Zones {
+	for _, zone := range cfg.Zones {
 		var rrs []dns.RR
 		var err error
 
-		if c.NoTx {
-			rrs, err = GetHostRecord(c.Address, zone, c.NoTxHost, c.Timeout)
+		if cfg.NoTx {
+			rrs, err = GetRecord(cfg.Address, zone, cfg.NoTxHost, cfg.Timeout)
 		} else {
-			rrs, err = TransferZone(c.Address, zone, c.NoTxHost, c.Timeout)
+			rrs, err = TransferZone(cfg.Address, zone, cfg.NoTxHost, cfg.Timeout)
 		}
 
 		if err != nil {
@@ -92,8 +92,8 @@ func TransferZone(server string, domain string, notxName string, timeout string)
 	return records, nil
 }
 
-// GetHostRecord acquires TXT records of a specific host.
-func GetHostRecord(server string, domain string, host string, timeout string) ([]dns.RR, error) {
+// GetRecord performs a DNS query for TXT records of a specific host.
+func GetRecord(server string, domain string, host string, timeout string) ([]dns.RR, error) {
 	records := make([]dns.RR, 0)
 	var name string
 
@@ -121,6 +121,48 @@ func GetHostRecord(server string, domain string, host string, timeout string) ([
 		return records, errors.Wrap(fmt.Errorf("not found: %s", name), "record loading failed")
 	}
 	records = rx.Answer
+
+	return records, nil
+}
+
+// GetHostRecords acquires DNS TXT records of a specific host by performing a DNS query for that host or by parsing the no-transfer host records.
+func GetHostRecords(cfg *config.Main, host string) ([]dns.RR, error) {
+	records := make([]dns.RR, 0)
+	var err error
+
+	if cfg.NoTx {
+		// No-transfer mode is enabled.
+		var zone string
+		var rrs []dns.RR
+
+		// Determine which zone we are working with.
+		for _, z := range cfg.Zones {
+			if strings.Contains(host, z) {
+				zone = z
+				break
+			}
+		}
+
+		// Get no-transfer host records.
+		rrs, err = GetRecord(cfg.Address, zone, cfg.NoTxHost, cfg.Timeout)
+		if err != nil {
+			return records, err
+		}
+
+		// Filter out the irrelevant records.
+		for _, rr := range rrs {
+			name := strings.TrimSuffix(strings.Split(dns.Field(rr, dnsRrTxtField), cfg.NoTxSeparator)[0], ".")
+			if host == name {
+				records = append(records, rr)
+			}
+		}
+	} else {
+		// No-transfer mode is disabled, no special logic is needed.
+		records, err = GetRecord(cfg.Address, "", host, cfg.Timeout)
+		if err != nil {
+			return records, err
+		}
+	}
 
 	return records, nil
 }
