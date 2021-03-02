@@ -137,7 +137,7 @@ func GetHostRecords(cfg *config.Main, host string) ([]dns.RR, error) {
 
 		// Determine which zone we are working with.
 		for _, z := range cfg.Zones {
-			if strings.Contains(host, z) {
+			if strings.HasSuffix(dns.Fqdn(host), dns.Fqdn(z)) {
 				zone = z
 				break
 			}
