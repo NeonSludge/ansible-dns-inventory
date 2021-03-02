@@ -29,8 +29,8 @@ func init() {
 	}
 }
 
-// GetRecords acquires DNS records from a remote DNS server.
-func GetRecords(cfg *config.Main) []dns.RR {
+// GetAllRecords acquires DNS records from a remote DNS server.
+func GetAllRecords(cfg *config.Main) []dns.RR {
 	records := make([]dns.RR, 0)
 
 	for _, zone := range cfg.Zones {
@@ -38,7 +38,7 @@ func GetRecords(cfg *config.Main) []dns.RR {
 		var err error
 
 		if cfg.NoTx {
-			rrs, err = GetRecord(cfg.Address, zone, cfg.NoTxHost, cfg.Timeout)
+			rrs, err = GetRecords(cfg.Address, zone, cfg.NoTxHost, cfg.Timeout)
 		} else {
 			rrs, err = TransferZone(cfg.Address, zone, cfg.NoTxHost, cfg.Timeout)
 		}
@@ -92,8 +92,8 @@ func TransferZone(server string, domain string, notxName string, timeout string)
 	return records, nil
 }
 
-// GetRecord performs a DNS query for TXT records of a specific host.
-func GetRecord(server string, domain string, host string, timeout string) ([]dns.RR, error) {
+// GetRecords performs a DNS query for TXT records of a specific host.
+func GetRecords(server string, domain string, host string, timeout string) ([]dns.RR, error) {
 	records := make([]dns.RR, 0)
 	var name string
 
@@ -144,7 +144,7 @@ func GetHostRecords(cfg *config.Main, host string) ([]dns.RR, error) {
 		}
 
 		// Get no-transfer host records.
-		rrs, err = GetRecord(cfg.Address, zone, cfg.NoTxHost, cfg.Timeout)
+		rrs, err = GetRecords(cfg.Address, zone, cfg.NoTxHost, cfg.Timeout)
 		if err != nil {
 			return records, err
 		}
@@ -158,7 +158,7 @@ func GetHostRecords(cfg *config.Main, host string) ([]dns.RR, error) {
 		}
 	} else {
 		// No-transfer mode is disabled, no special logic is needed.
-		records, err = GetRecord(cfg.Address, "", host, cfg.Timeout)
+		records, err = GetRecords(cfg.Address, "", host, cfg.Timeout)
 		if err != nil {
 			return records, err
 		}

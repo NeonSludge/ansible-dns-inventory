@@ -34,7 +34,7 @@ func main() {
 
 	if len(*hostFlag) == 0 {
 		// Acquire TXT records.
-		records := dns.GetRecords(cfg)
+		records := dns.GetAllRecords(cfg)
 		if len(records) == 0 {
 			log.Fatal("empty TXT records list")
 		}
