@@ -14,7 +14,7 @@ For this to work you must ensure that:
 2. Every host that should be managed by Ansible has one or more properly formatted DNS TXT records OR there is a set of TXT records belonging to a special host (the `dns.notransfer.host` parameter) AND you're using the no-transfer mode.
 3. You have created a configuration file for `ansible-dns-inventory`.
 
-### Usage
+## Usage
 ```
 Usage of dns-inventory:
   -attrs
@@ -35,7 +35,7 @@ Usage of dns-inventory:
         display ansible-dns-inventory version and build info
 ```
 
-### TXT record format
+## TXT record format
 There are two ways to add a host to the inventory:
 
 1. Create a DNS TXT record for this host and format it properly, specifying host attributes as a set of key/value pairs. One host can have an unlimited number of TXT records: all of them will be parsed by `ansible-dns-inventory`.
@@ -43,19 +43,19 @@ There are two ways to add a host to the inventory:
 
 Here is an example of using both of these ways:
 
-#### Example of a TXT record (regular mode)
+### Example of a TXT record (regular mode)
 | Host                  | TXT record                                                                       |
 | --------------------- | -------------------------------------------------------------------------------- |
 | `app01.infra.local`   | `OS=linux;ENV=dev;ROLE=app;SRV=tomcat_backend_auth;VARS=key1=value1,key2=value2` |
 
-#### Example of a TXT record (no-transfer mode)
+### Example of a TXT record (no-transfer mode)
 | Host                                | TXT record                                                                                         |
 | ----------------------------------- | -------------------------------------------------------------------------------------------------- |
 | `ansible-dns-inventory.infra.local` | `app01.infra.local:OS=linux;ENV=dev;ROLE=app;SRV=tomcat_backend_auth;VARS=key1=value1,key2=value2` |
 
 The separator between the hostname and the attribute string in the no-transfer mode is customizable (the `dns.notransfer.separator` parameter).
 
-#### Host attributes (default key names)
+### Host attributes (default key names)
 | Key  | Description                                                                                                                                                 |
 | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | OS   | Operating system identifier.                                                                                                                                |
@@ -67,14 +67,14 @@ The separator between the hostname and the attribute string in the no-transfer m
 Key names and separators are customizable via `ansible-dns-inventory`'s config file.
 Key values are validated and can only contain numbers and letters of the Latin alphabet, except for the service identifier(s) which can also contain the `txt.keys.separator` symbol.
 
-#### Host variables
+### Host variables
 `ansible-dns-inventory` supports passing additional host variables to Ansible via the `VARS` attribute. This feature is disabled by default, you can enable it by setting the `txt.vars.enabled` parameter to `true`.
 This is meant to be used in cases where storing some Ansible host variables directly in TXT records could be a good idea. For example, you might want to put variables like `ansible_user` there.
 
 WARNING: This feature adds an additional DNS request for every host in your inventory so be careful when using it with large inventories.
 The no-transfer mode may particularly suffer a perfomance hit if host variables are used.
 
-### Config file
+## Config file
 
 `ansible-dns-inventory` can use a YAML configuration file, a set of environment variables or both as its configuration source.
 
@@ -91,7 +91,7 @@ If no configuration file was found, it will fall back to using default values an
 Every parameter can also be overriden by a corresponding environment variable.
 There is a [template](config/ansible-dns-inventory.yaml) in this repository that lists descriptions, environment variable names and default values for all available parameters.
 
-#### Example of a config file
+### Example of a config file
 ```
 dns:
   server: "10.100.100.1:53"
@@ -107,7 +107,7 @@ txt:
 
 ```
 
-### Inventory structure
+## Inventory structure
 
 In general, if you have a single TXT record for a `HOST` and this record has all 4 attributes set then this `HOST` will end up in this hierarchy of groups:
 
@@ -169,7 +169,7 @@ These will produce the following Ansible inventory tree:
   |--@ungrouped:
 ```
 
-### Export mode
+## Export mode
 
 `ansible-dns-inventory` can also export the inventory in several formats. This makes it possible to use your inventory in some third-party software.
 An example of this use case would be using this output as a dictionary in a [Logstash translate filter](https://www.elastic.co/guide/en/logstash/current/plugins-filters-translate.html#plugins-filters-translate-dictionary_path) to populate a `groups` field during log processing to be able to filter events coming from a specific group of hosts.
@@ -187,7 +187,7 @@ The default format is always `yaml`.
 
 The `-attrs` mode exports a list of dictionaries of attributes for each host. If a host has multiple TXT records or multiple elements in a comma-separated list in the `ROLE` or `SRV` attribute, the attribute list for this host in the `-attrs` output will contain multiple dictionaries: one for each detected attribute "set".
 
-#### Examples:
+### Examples:
 ```
 $ dns-inventory -hosts -format yaml-list
 ...
@@ -204,3 +204,8 @@ $ dns-inventory -attrs -format yaml-flow
 "app01.infra.local": [{"OS": "linux", "ENV": "dev", "ROLE": "app", "SRV": "tomcat_backend_auth", "VARS: "key1=value1,key2=value2"}]
 ...
 ```
+
+## Roadmap
+
+- [ ] Implement key-value stores support (etcd, Consul, etc.).
+- [ ] Support using `ansible-dns-inventory` as a library.
