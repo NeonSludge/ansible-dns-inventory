@@ -58,10 +58,10 @@ The separator between the hostname and the attribute string in the no-transfer m
 ### Host attributes (default key names)
 | Key  | Description                                                                                                                                                 |
 | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| OS   | Operating system identifier.                                                                                                                                |
-| ENV  | Environment identifier.                                                                                                                                     |
-| ROLE | Host role identifier(s). Can be a comma-delimited list.                                                                                                     |
-| SRV  | Host service identifier(s). This will be split further using the `txt.keys.separator` to produce a hierarchy of groups. Can also be a comma-delimited list. |
+| OS   | Operating system identifier. Required.                                                                                                                      |
+| ENV  | Environment identifier. Required.                                                                                                                           |
+| ROLE | Host role identifier(s). Required. Can be a comma-delimited list.                                                                                           |
+| SRV  | Host service identifier(s). This will be split further using the `txt.keys.separator` to produce a hierarchy of groups. Required. Can also be a comma-delimited list. |
 | VARS | Optional host variables.                                                                                                                                    |
 
 Key names and separators are customizable via `ansible-dns-inventory`'s config file.
@@ -109,7 +109,7 @@ txt:
 
 ## Inventory structure
 
-In general, if you have a single TXT record for a `HOST` and this record has all 4 attributes set then this `HOST` will end up in this hierarchy of groups:
+In general, if you have a single TXT record for a `HOST` and this record has all 4 required attributes set then this `HOST` will end up in this hierarchy of groups:
 
 ```
 @all:
@@ -201,7 +201,7 @@ $ dns-inventory -hosts -format yaml-csv
 
 $ dns-inventory -attrs -format yaml-flow
 ...
-"app01.infra.local": [{"OS": "linux", "ENV": "dev", "ROLE": "app", "SRV": "tomcat_backend_auth", "VARS: "key1=value1,key2=value2"}]
+"app01.infra.local": [{"OS": "linux", "ENV": "dev", "ROLE": "app", "SRV": "tomcat_backend_auth", "VARS": "key1=value1,key2=value2"}]
 ...
 ```
 
