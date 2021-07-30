@@ -17,6 +17,8 @@ type (
 		Timeout string
 		// DNS zone list.
 		Zones []string
+		// TSIG parameters.
+		TSIG TSIGParameters
 		// (no-transfer mode) Enable no-transfer data retrieval mode.
 		NoTx bool
 		// (no-transfer mode) A host whose TXT records contain inventory data.
@@ -46,6 +48,18 @@ type (
 		// Key name of the attribute containing the host variables.
 		KeyVars string
 	}
+
+	// TSIGParameters contains TSIG parameters to use during zone transfers.
+	TSIGParameters struct {
+		// Enable TSIG.
+		Enabled bool
+		// TSIG key name.
+		Key string
+		// TSIG secret (base64-encoded).
+		Secret string
+		// TSIG algorithm. Allowed values: 'hmac-sha1', 'hmac-sha256', 'hmac-sha512'.
+		Algo string
+	}
 )
 
 func (c *Main) load() {
@@ -66,6 +80,19 @@ func (c *Main) load() {
 	c.KeyRole = viper.GetString("txt.keys.role")
 	c.KeySrv = viper.GetString("txt.keys.srv")
 	c.KeyVars = viper.GetString("txt.keys.vars")
+
+	c.TSIG.Enabled = viper.GetBool("dns.tsig.enabled")
+	c.TSIG.Key = viper.GetString("dns.tsig.key")
+	c.TSIG.Secret = viper.GetString("dns.tsig.secret")
+
+	algo := viper.GetString("dns.tsig.algo")
+	switch algo {
+	case "hmac-sha1", "hmac-sha256", "hmac-sha512":
+		c.TSIG.Algo = algo + "."
+	default:
+		c.TSIG.Algo = "hmac-sha256."
+	}
+
 }
 
 // New initializes and loads the configuration.
@@ -103,6 +130,11 @@ func New() *Main {
 	viper.SetDefault("dns.notransfer.enabled", false)
 	viper.SetDefault("dns.notransfer.host", "ansible-dns-inventory")
 	viper.SetDefault("dns.notransfer.separator", ":")
+
+	viper.SetDefault("dns.tsig.enabled", false)
+	viper.SetDefault("dns.tsig.key", ".axfr")
+	viper.SetDefault("dns.tsig.secret", "c2VjcmV0Cg==")
+	viper.SetDefault("dns.tsig.algo", "hmac-sha256")
 
 	viper.SetDefault("txt.kv.separator", ";")
 	viper.SetDefault("txt.kv.equalsign", "=")

@@ -40,7 +40,7 @@ func GetAllRecords(cfg *config.Main) []dns.RR {
 		if cfg.NoTx {
 			rrs, err = GetRecords(cfg.Address, zone, cfg.NoTxHost, cfg.Timeout)
 		} else {
-			rrs, err = TransferZone(cfg.Address, zone, cfg.NoTxHost, cfg.Timeout)
+			rrs, err = TransferZone(cfg.Address, zone, cfg.TSIG, cfg.NoTxHost, cfg.Timeout)
 		}
 
 		if err != nil {
@@ -55,7 +55,7 @@ func GetAllRecords(cfg *config.Main) []dns.RR {
 }
 
 // TransferZone performs a DNS zone transfer (AXFR).
-func TransferZone(server string, domain string, notxName string, timeout string) ([]dns.RR, error) {
+func TransferZone(server string, domain string, tsig config.TSIGParameters, notxName string, timeout string) ([]dns.RR, error) {
 	records := make([]dns.RR, 0)
 
 	t, err := time.ParseDuration(timeout)
@@ -70,6 +70,11 @@ func TransferZone(server string, domain string, notxName string, timeout string)
 
 	msg := new(dns.Msg)
 	msg.SetAxfr(dns.Fqdn(domain))
+
+	if tsig.Enabled {
+		tx.TsigSecret = map[string]string{tsig.Key: tsig.Secret}
+		msg.SetTsig(tsig.Key, tsig.Algo, 300, time.Now().Unix())
+	}
 
 	// Perform the transfer.
 	c, err := tx.In(msg, server)

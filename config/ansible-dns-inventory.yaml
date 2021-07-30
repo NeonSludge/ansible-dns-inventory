@@ -14,6 +14,16 @@ dns:
     host: "ansible-dns-inventory"
     # Separator between a hostname and an attribute string in a TXT record. Environment variable: ADI_DNS_NOTRANSFER_SEPARATOR
     separator: ":"
+  # TSIG parameters (used only with zone transfer requests).
+  tsig:
+    # Enable TSIG. Environment variable: ADI_DNS_TSIG_ENABLED
+    enabled: false
+    # TSIG key name. Environment variable: ADI_DNS_TSIG_KEY
+    key: ".axfr"
+    # TSIG secret (base64-encoded). Environment variable: ADI_DNS_TSIG_SECRET
+    secret: "c2VjcmV0Cg=="
+    # TSIG algorithm. Allowed values: 'hmac-sha1', 'hmac-sha256', 'hmac-sha512'. 'hmac-sha256' is used if an invalid value is specified. Environment variable: ADI_DNS_TSIG_ALGO
+    algo: "hmac-sha256"
 # TXT record parsing configuration.
 txt:
   # Key/value pair parsing configuration.
