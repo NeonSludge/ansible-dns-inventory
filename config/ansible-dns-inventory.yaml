@@ -19,7 +19,7 @@ dns:
     # Enable TSIG. Environment variable: ADI_DNS_TSIG_ENABLED
     enabled: false
     # TSIG key name. Environment variable: ADI_DNS_TSIG_KEY
-    key: ".axfr"
+    key: "axfr."
     # TSIG secret (base64-encoded). Environment variable: ADI_DNS_TSIG_SECRET
     secret: "c2VjcmV0Cg=="
     # TSIG algorithm. Allowed values: 'hmac-sha1', 'hmac-sha256', 'hmac-sha512'. 'hmac-sha256' is used if an invalid value is specified. Environment variable: ADI_DNS_TSIG_ALGO

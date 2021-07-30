@@ -132,7 +132,7 @@ func New() *Main {
 	viper.SetDefault("dns.notransfer.separator", ":")
 
 	viper.SetDefault("dns.tsig.enabled", false)
-	viper.SetDefault("dns.tsig.key", ".axfr")
+	viper.SetDefault("dns.tsig.key", "axfr.")
 	viper.SetDefault("dns.tsig.secret", "c2VjcmV0Cg==")
 	viper.SetDefault("dns.tsig.algo", "hmac-sha256")
 
