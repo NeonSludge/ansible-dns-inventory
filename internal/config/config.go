@@ -93,8 +93,6 @@ func tsigAlgo(algo string) string {
 	switch algo {
 	case "hmac-sha1", "hmac-sha224", "hmac-sha256", "hmac-sha384", "hmac-sha512":
 		return algo + "."
-	case "hmac-md5":
-		return "hmac-md5.sig-alg.reg.int."
 	default:
 		return "hmac-sha256."
 	}
