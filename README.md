@@ -2,7 +2,7 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/NeonSludge/ansible-dns-inventory)](https://goreportcard.com/report/github.com/NeonSludge/ansible-dns-inventory)
 
-A [dynamic inventory](https://docs.ansible.com/ansible/latest/user_guide/intro_dynamic_inventory.html) script for Ansible that discovers hosts and groups via a DNS request and organizes them into a tree.
+A [dynamic inventory](https://docs.ansible.com/ansible/latest/user_guide/intro_dynamic_inventory.html) script for Ansible that uses DNS to discover hosts and groups and represents the resulting inventory as a tree.
 
 This utility uses a DNS server as a single-source-of-truth for your Ansible inventories. It extracts host attributes from corresponding DNS TXT records and builds a tree out of them that then gets exported into a JSON representation, ready for use by Ansible. A tree is often a very convenient way of organizing your inventory because it allows for a predictable variable merging/flattening order.
 
@@ -13,6 +13,15 @@ For this to work you must ensure that:
 1. Your DNS server allows zone transfers (AXFR) to the host that is going to be running `ansible-dns-inventory` (Ansible control node) OR you're using the no-transfer mode (the `dns.notransfer.enabled` parameter in the configuration).
 2. Every host that should be managed by Ansible has one or more properly formatted DNS TXT records OR there is a set of TXT records belonging to a special host (the `dns.notransfer.host` parameter) AND you're using the no-transfer mode.
 3. You have created a configuration file for `ansible-dns-inventory`.
+
+## Features
+
+- Two modes of operation: zone transfers and regular DNS queries.
+- TSIG support for zone tranfers.
+- Unlimited number and length of inventory tree branches.
+- Predictable and stable inventory structure.
+- Multiple records per host supported.
+- Optional custom Ansible variables in DNS records (see caveats in the 'Host variables' section).
 
 ## Usage
 ```
