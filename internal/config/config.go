@@ -84,15 +84,20 @@ func (c *Main) load() {
 	c.TSIG.Enabled = viper.GetBool("dns.tsig.enabled")
 	c.TSIG.Key = viper.GetString("dns.tsig.key")
 	c.TSIG.Secret = viper.GetString("dns.tsig.secret")
+	c.TSIG.Algo = tsigAlgo(viper.GetString("dns.tsig.algo"))
 
-	algo := viper.GetString("dns.tsig.algo")
+}
+
+// tsigAlgo processes user-supplied TSIG algorithm names.
+func tsigAlgo(algo string) string {
 	switch algo {
-	case "hmac-sha1", "hmac-sha256", "hmac-sha512":
-		c.TSIG.Algo = algo + "."
+	case "hmac-sha1", "hmac-sha224", "hmac-sha256", "hmac-sha384", "hmac-sha512":
+		return algo + "."
+	case "hmac-md5":
+		return "hmac-md5.sig-alg.reg.int."
 	default:
-		c.TSIG.Algo = "hmac-sha256."
+		return "hmac-sha256."
 	}
-
 }
 
 // New initializes and loads the configuration.
