@@ -7,10 +7,7 @@ import (
 	"os"
 
 	"github.com/NeonSludge/ansible-dns-inventory/internal/build"
-	"github.com/NeonSludge/ansible-dns-inventory/internal/config"
-	"github.com/NeonSludge/ansible-dns-inventory/internal/dns"
-	"github.com/NeonSludge/ansible-dns-inventory/internal/tree"
-	"github.com/NeonSludge/ansible-dns-inventory/internal/types"
+	"github.com/NeonSludge/ansible-dns-inventory/internal/inventory"
 	"github.com/NeonSludge/ansible-dns-inventory/internal/util"
 )
 
@@ -29,25 +26,25 @@ func main() {
 	versionFlag := flag.Bool("version", false, "display ansible-dns-inventory version and build info")
 	flag.Parse()
 
-	// Initialize and load configuration.
-	cfg := config.New()
+	// Initialize a new inventory.
+	dnsInventory, err := inventory.New()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	if len(*hostFlag) == 0 {
 		// Acquire TXT records.
-		records := dns.GetAllRecords(cfg)
+		records := dnsInventory.GetAllRecords()
 		if len(records) == 0 {
 			log.Fatal("empty TXT records list")
 		}
 
 		// Parse TXT records.
-		hosts := dns.ParseRecords(records, cfg)
-
-		// Initialize the inventory tree.
-		inventory := tree.New()
+		hosts := dnsInventory.ParseRecords(records)
 
 		// Load DNS records into the inventory tree.
-		inventory.ImportHosts(hosts, cfg)
-		inventory.SortChildren()
+		dnsInventory.ImportHosts(hosts)
+		dnsInventory.SortChildren()
 
 		// Export the inventory tree in various formats.
 		var bytes []byte
@@ -57,29 +54,29 @@ func main() {
 			fmt.Println("version:", build.Version)
 			fmt.Println("build time:", build.Time)
 		case *listFlag:
-			export := make(map[string]*types.InventoryGroup)
+			export := make(map[string]*inventory.AnsibleGroup)
 
 			// Export the inventory tree into a map.
-			inventory.ExportInventory(export)
+			dnsInventory.ExportInventory(export)
 
 			// Marshal the map into a JSON representation of an Ansible inventory.
-			bytes, err = util.Marshal(export, "json", cfg)
+			bytes, err = util.Marshal(export, "json", dnsInventory.Config)
 		case *attrsFlag:
-			bytes, err = util.Marshal(hosts, *formatFlag, cfg)
+			bytes, err = util.Marshal(hosts, *formatFlag, dnsInventory.Config)
 		case *treeFlag:
-			bytes, err = util.Marshal(inventory, *formatFlag, cfg)
+			bytes, err = util.Marshal(dnsInventory.Tree, *formatFlag, dnsInventory.Config)
 		default:
 			export := make(map[string][]string)
 
 			// Export the inventory tree into a map.
 			switch {
 			case *hostsFlag:
-				inventory.ExportHosts(export)
+				dnsInventory.ExportHosts(export)
 			case *groupsFlag:
-				inventory.ExportGroups(export)
+				dnsInventory.ExportGroups(export)
 			}
 
-			bytes, err = util.Marshal(export, *formatFlag, cfg)
+			bytes, err = util.Marshal(export, *formatFlag, dnsInventory.Config)
 		}
 
 		if err != nil {
@@ -87,18 +84,18 @@ func main() {
 		}
 
 		fmt.Println(string(bytes))
-	} else if len(*hostFlag) > 0 && cfg.VarsEnabled {
+	} else if len(*hostFlag) > 0 && dnsInventory.Config.GetBool("txt.vars.enabled") {
 		// Acquire host TXT records.
-		records, err := dns.GetHostRecords(cfg, *hostFlag)
+		records, err := dnsInventory.GetHostRecords(*hostFlag)
 		if err != nil {
 			log.Fatal(err)
 		}
 
 		// Parse host TXT records.
-		attrs := dns.ParseRecords(records, cfg)[*hostFlag]
+		attrs := dnsInventory.ParseRecords(records)[*hostFlag]
 
 		// Parse host variables.
-		bytes, err := dns.ParseVariables(attrs, cfg)
+		bytes, err := dnsInventory.ParseVariables(attrs)
 		if err != nil {
 			log.Fatal(err)
 		}
