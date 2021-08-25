@@ -4,59 +4,17 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"reflect"
-	"regexp"
 	"strconv"
 	"strings"
 
-	"github.com/NeonSludge/ansible-dns-inventory/internal/config"
-	"github.com/NeonSludge/ansible-dns-inventory/internal/types"
+	"github.com/NeonSludge/ansible-dns-inventory/internal/inventory"
 	"github.com/pkg/errors"
-	"github.com/spf13/viper"
 
 	"gopkg.in/yaml.v2"
 )
 
-// SafeAttr validate host attributes.
-func SafeAttr(v interface{}, param string) error {
-	value := reflect.ValueOf(v)
-	if value.Kind() != reflect.String {
-		return errors.New("safeAttr() can only validate strings")
-	}
-
-	separator := viper.GetString("txt.keys.separator")
-	re := "^[A-Za-z0-9"
-
-	// Deprecated: using '-' in group names.
-	if separator == "-" {
-		re += "\\_"
-	}
-
-	switch param {
-	case "srv":
-		re += "\\,\\" + separator + "]*$"
-	case "list":
-		re += "\\," + "]*$"
-	case "vars":
-		re = "^[[:print:]]*$"
-	default:
-		re += "]*$"
-	}
-
-	pattern, err := regexp.Compile(re)
-	if err != nil {
-		return errors.Wrap(err, "regex compilation error")
-	}
-
-	if !pattern.MatchString(value.String()) {
-		return fmt.Errorf("string '%s' is not a valid host attribute value (expr: %s)", value.String(), re)
-	}
-
-	return nil
-}
-
 // Marshal returns the JSON or YAML encoding of v.
-func Marshal(v interface{}, format string, cfg *config.Main) ([]byte, error) {
+func Marshal(v interface{}, format string, cfg inventory.Config) ([]byte, error) {
 	var bytes []byte
 	var err error
 
@@ -79,7 +37,7 @@ func Marshal(v interface{}, format string, cfg *config.Main) ([]byte, error) {
 // marshalYAMLFlow returns the flow-style YAML encoding of v which can be a map[string][]string or a map[string]*types.TXTAttrs.
 // It supports two formats of marshalling the values in the map: as a YAML list (format=yaml-list) and as a CSV string (format=yaml-csv).
 // TODO: deal with yaml.Marshal's issues with flow-style encoding and switch to using that instead of this hack.
-func marshalYAMLFlow(v interface{}, format string, cfg *config.Main) ([]byte, error) {
+func marshalYAMLFlow(v interface{}, format string, cfg inventory.Config) ([]byte, error) {
 	buf := new(bytes.Buffer)
 
 	switch v := v.(type) {
@@ -101,13 +59,13 @@ func marshalYAMLFlow(v interface{}, format string, cfg *config.Main) ([]byte, er
 				return buf.Bytes(), err
 			}
 		}
-	case map[string][]*types.Attributes:
+	case map[string][]*inventory.HostAttributes:
 		for key, value := range v {
 			var yaml []string
 			for _, attrs := range value {
 				switch format {
 				case "yaml-flow":
-					yaml = append(yaml, fmt.Sprintf("{\"%s\": \"%s\", \"%s\": \"%s\", \"%s\": \"%s\", \"%s\": \"%s\", \"%s\": \"%s\"}", cfg.KeyOs, attrs.OS, cfg.KeyEnv, attrs.Env, cfg.KeyRole, attrs.Role, cfg.KeySrv, attrs.Srv, cfg.KeyVars, attrs.Vars))
+					yaml = append(yaml, fmt.Sprintf("{\"%s\": \"%s\", \"%s\": \"%s\", \"%s\": \"%s\", \"%s\": \"%s\", \"%s\": \"%s\"}", cfg.GetString("txt.keys.os"), attrs.OS, cfg.GetString("txt.keys.env"), attrs.Env, cfg.GetString("txt.keys.role"), attrs.Role, cfg.GetString("txt.keys.srv"), attrs.Srv, cfg.GetString("txt.keys.vars"), attrs.Vars))
 				default:
 					return buf.Bytes(), fmt.Errorf("unsupported format: %s", format)
 				}
