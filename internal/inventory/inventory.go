@@ -61,10 +61,6 @@ func safeAttr(v interface{}, param string) error {
 // ImportHosts loads a map of hosts and their attributes into the inventory tree.
 func (i *Inventory) ImportHosts(hosts map[string][]*HostAttributes) {
 	i.Tree.importHosts(hosts, i.Config.GetString("txt.keys.separator"))
-}
-
-// SortChildren sorts inventory tree nodes (groups) by name recursively.
-func (i *Inventory) SortChildren() {
 	i.Tree.sortChildren()
 }
 
@@ -160,7 +156,7 @@ func (i *Inventory) GetRecords(host string) ([]dns.RR, error) {
 	var name string
 
 	if len(host) > 0 {
-		name = fmt.Sprintf("%s.%s", cfg.GetString("dns.notransfer.host"), dns.Fqdn(host))
+		name = cfg.GetString("dns.notransfer.host") + "." + dns.Fqdn(host)
 	} else {
 		name = dns.Fqdn(cfg.GetString("dns.notransfer.host"))
 	}

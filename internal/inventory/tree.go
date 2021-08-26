@@ -2,7 +2,6 @@ package inventory
 
 import (
 	"encoding/json"
-	"fmt"
 	"sort"
 	"strings"
 )
@@ -59,13 +58,13 @@ func (n *Node) importHosts(hosts map[string][]*HostAttributes, sep string) {
 				envNode := n.addChild(env)
 
 				// Role: root>environment>role
-				groupName := fmt.Sprintf("%s%s%s", env, sep, attr.Role)
+				groupName := env + sep + attr.Role
 				groupNode := envNode.addChild(groupName)
 
 				// Service: root>environment>role>service[1]>...>service[N].
 				for i, srv := range strings.Split(attr.Srv, sep) {
 					if len(srv) > 0 && (i == 0 || env != ansibleRootGroup || attr.Env == ansibleRootGroup) {
-						groupName = fmt.Sprintf("%s%s%s", groupName, sep, srv)
+						groupName = groupName + sep + srv
 						groupNode = groupNode.addChild(groupName)
 					}
 				}
@@ -74,7 +73,7 @@ func (n *Node) importHosts(hosts map[string][]*HostAttributes, sep string) {
 				groupNode.addHost(host)
 
 				// Special groups: [root_]<environment>_host, [root_]<environment>_host_<os>
-				envNode.addChild(fmt.Sprintf("%s%shost", env, sep)).addChild(fmt.Sprintf("%s%shost%s%s", env, sep, sep, attr.OS)).addHost(host)
+				envNode.addChild(env + sep + "host").addChild(env + sep + "host" + sep + attr.OS).addHost(host)
 			}
 		}
 	}

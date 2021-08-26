@@ -44,7 +44,6 @@ func main() {
 
 		// Load DNS records into the inventory tree.
 		dnsInventory.ImportHosts(hosts)
-		dnsInventory.SortChildren()
 
 		// Export the inventory tree in various formats.
 		var bytes []byte
