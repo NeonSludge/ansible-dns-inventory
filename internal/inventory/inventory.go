@@ -327,7 +327,7 @@ func (i *Inventory) ParseVariables(a []*HostAttributes) ([]byte, error) {
 // New creates an empty instance of a DNS inventory.
 func New() (*Inventory, error) {
 	// Process configuration
-	cfg, err := newConfig()
+	cfg, err := initConfig()
 	if err != nil {
 		return nil, errors.Wrap(err, "configuration initialization failure")
 	}
@@ -339,7 +339,7 @@ func New() (*Inventory, error) {
 
 	i := &Inventory{
 		Config: cfg,
-		Tree:   newTree(),
+		Tree:   initTree(),
 	}
 
 	return i, nil

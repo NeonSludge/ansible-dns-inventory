@@ -21,8 +21,8 @@ func tsigAlgo(algo string) string {
 	}
 }
 
-// newConfig initializes the configuration.
-func newConfig() (Config, error) {
+// initConfig initializes the configuration.
+func initConfig() (Config, error) {
 	v := viper.New()
 
 	// Load YAML configuration.
