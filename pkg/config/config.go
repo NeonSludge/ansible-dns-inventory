@@ -7,7 +7,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 
-	"github.com/NeonSludge/ansible-dns-inventory/internal/types"
+	"github.com/NeonSludge/ansible-dns-inventory/pkg/types"
 )
 
 var ADIHostAttributeNames map[string]string
