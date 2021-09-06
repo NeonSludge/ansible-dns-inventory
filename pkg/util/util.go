@@ -7,14 +7,15 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/NeonSludge/ansible-dns-inventory/internal/inventory"
 	"github.com/pkg/errors"
-
 	"gopkg.in/yaml.v2"
+
+	"github.com/NeonSludge/ansible-dns-inventory/pkg/inventory"
+	"github.com/NeonSludge/ansible-dns-inventory/pkg/types"
 )
 
 // Marshal returns the JSON or YAML encoding of v.
-func Marshal(v interface{}, format string, cfg inventory.Config) ([]byte, error) {
+func Marshal(v interface{}, format string, cfg types.Config) ([]byte, error) {
 	var bytes []byte
 	var err error
 
@@ -28,7 +29,7 @@ func Marshal(v interface{}, format string, cfg inventory.Config) ([]byte, error)
 	}
 
 	if err != nil {
-		return bytes, errors.Wrapf(err, "marshalling error")
+		return bytes, errors.Wrap(err, "marshalling error")
 	}
 
 	return bytes, nil
@@ -37,7 +38,7 @@ func Marshal(v interface{}, format string, cfg inventory.Config) ([]byte, error)
 // marshalYAMLFlow returns the flow-style YAML encoding of v which can be a map[string][]string or a map[string]*types.TXTAttrs.
 // It supports two formats of marshalling the values in the map: as a YAML list (format=yaml-list) and as a CSV string (format=yaml-csv).
 // TODO: deal with yaml.Marshal's issues with flow-style encoding and switch to using that instead of this hack.
-func marshalYAMLFlow(v interface{}, format string, cfg inventory.Config) ([]byte, error) {
+func marshalYAMLFlow(v interface{}, format string, cfg types.Config) ([]byte, error) {
 	buf := new(bytes.Buffer)
 
 	switch v := v.(type) {

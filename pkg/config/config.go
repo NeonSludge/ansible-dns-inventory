@@ -1,4 +1,4 @@
-package inventory
+package config
 
 import (
 	"os"
@@ -6,10 +6,12 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
+
+	"github.com/NeonSludge/ansible-dns-inventory/internal/types"
 )
 
-var hostAttributeNames map[string]string
-var txtKeysSeparator string
+var ADIHostAttributeNames map[string]string
+var ADITxtKeysSeparator string
 
 // tsigAlgo processes user-supplied TSIG algorithm names.
 func tsigAlgo(algo string) string {
@@ -21,8 +23,8 @@ func tsigAlgo(algo string) string {
 	}
 }
 
-// initConfig initializes the configuration.
-func initConfig() (Config, error) {
+// New initializes the configuration.
+func New() (types.Config, error) {
 	v := viper.New()
 
 	// Load YAML configuration.
@@ -31,7 +33,7 @@ func initConfig() (Config, error) {
 		// Load a specific config file.
 		v.SetConfigFile(path)
 	} else {
-		// Try to find the config file in standard loctions.
+		// Try to find the config file in standard locations.
 		home, err := os.UserHomeDir()
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to determine user's home directory")
@@ -56,6 +58,8 @@ func initConfig() (Config, error) {
 	v.AutomaticEnv()
 
 	// Set defaults.
+	v.SetDefault("datasource", "dns")
+
 	v.SetDefault("dns.server", "127.0.0.1:53")
 	v.SetDefault("dns.timeout", "30s")
 	v.SetDefault("dns.zones", []string{"server.local."})
@@ -86,14 +90,14 @@ func initConfig() (Config, error) {
 	// Process user-supplied TSIG algorithm name.
 	v.Set("dns.tsig.algo", tsigAlgo(v.GetString("dns.tsig.algo")))
 
-	hostAttributeNames = make(map[string]string)
-	hostAttributeNames["OS"] = v.GetString("txt.keys.os")
-	hostAttributeNames["ENV"] = v.GetString("txt.keys.env")
-	hostAttributeNames["ROLE"] = v.GetString("txt.keys.role")
-	hostAttributeNames["SRV"] = v.GetString("txt.keys.srv")
-	hostAttributeNames["VARS"] = v.GetString("txt.keys.vars")
+	ADIHostAttributeNames = make(map[string]string)
+	ADIHostAttributeNames["OS"] = v.GetString("txt.keys.os")
+	ADIHostAttributeNames["ENV"] = v.GetString("txt.keys.env")
+	ADIHostAttributeNames["ROLE"] = v.GetString("txt.keys.role")
+	ADIHostAttributeNames["SRV"] = v.GetString("txt.keys.srv")
+	ADIHostAttributeNames["VARS"] = v.GetString("txt.keys.vars")
 
-	txtKeysSeparator = v.GetString("txt.keys.separator")
+	ADITxtKeysSeparator = v.GetString("txt.keys.separator")
 
 	return v, nil
 }

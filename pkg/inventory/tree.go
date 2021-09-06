@@ -43,8 +43,8 @@ func (n *Node) MarshalYAML() (interface{}, error) {
 	}, nil
 }
 
-// importHosts loads a map of hosts and their attributes into the inventory tree, using this node as root.
-func (n *Node) importHosts(hosts map[string][]*HostAttributes, sep string) {
+// ImportHosts loads a map of hosts and their attributes into the inventory tree, using this node as root.
+func (n *Node) ImportHosts(hosts map[string][]*HostAttributes, sep string) {
 	for host, attrs := range hosts {
 		for _, attr := range attrs {
 			// Create an environment list for this host. Add the root environment, if necessary.
@@ -55,32 +55,32 @@ func (n *Node) importHosts(hosts map[string][]*HostAttributes, sep string) {
 			// Iterate the environments.
 			for env := range envs {
 				// Environment: root>environment
-				envNode := n.addChild(env)
+				envNode := n.AddChild(env)
 
 				// Role: root>environment>role
 				groupName := env + sep + attr.Role
-				groupNode := envNode.addChild(groupName)
+				groupNode := envNode.AddChild(groupName)
 
 				// Service: root>environment>role>service[1]>...>service[N].
 				for i, srv := range strings.Split(attr.Srv, sep) {
 					if len(srv) > 0 && (i == 0 || env != ansibleRootGroup || attr.Env == ansibleRootGroup) {
 						groupName = groupName + sep + srv
-						groupNode = groupNode.addChild(groupName)
+						groupNode = groupNode.AddChild(groupName)
 					}
 				}
 
 				// The last service group holds the host.
-				groupNode.addHost(host)
+				groupNode.AddHost(host)
 
 				// Special groups: [root_]<environment>_host, [root_]<environment>_host_<os>
-				envNode.addChild(env + sep + "host").addChild(env + sep + "host" + sep + attr.OS).addHost(host)
+				envNode.AddChild(env + sep + "host").AddChild(env + sep + "host" + sep + attr.OS).AddHost(host)
 			}
 		}
 	}
 }
 
-// getAncestors returns all ancestor nodes, starting from this node.
-func (n *Node) getAncestors() []*Node {
+// GetAncestors returns all ancestor nodes, starting from this node.
+func (n *Node) GetAncestors() []*Node {
 	ancestors := make([]*Node, 0)
 
 	if len(n.Parent.Name) > 0 {
@@ -88,15 +88,15 @@ func (n *Node) getAncestors() []*Node {
 		ancestors = append(ancestors, n.Parent)
 
 		// Add ancestors.
-		a := n.Parent.getAncestors()
+		a := n.Parent.GetAncestors()
 		ancestors = append(ancestors, a...)
 	}
 
 	return ancestors
 }
 
-// getAllHosts returns all hosts from descendant groups, starting from this node.
-func (n *Node) getAllHosts() map[string]bool {
+// GetAllHosts returns all hosts from descendant groups, starting from this node.
+func (n *Node) GetAllHosts() map[string]bool {
 	result := make(map[string]bool)
 
 	// Add our own hosts.
@@ -109,7 +109,7 @@ func (n *Node) getAllHosts() map[string]bool {
 	// Add hosts of our descendants.
 	if len(n.Children) > 0 {
 		for _, child := range n.Children {
-			for host := range child.getAllHosts() {
+			for host := range child.GetAllHosts() {
 				result[host] = true
 			}
 		}
@@ -118,8 +118,8 @@ func (n *Node) getAllHosts() map[string]bool {
 	return result
 }
 
-// addChild adds a child to this node if it doesn't exist and return a pointer to the child.
-func (n *Node) addChild(name string) *Node {
+// AddChild adds a child to this node if it doesn't exist and return a pointer to the child.
+func (n *Node) AddChild(name string) *Node {
 	if n.Name == name {
 		return n
 	}
@@ -136,24 +136,24 @@ func (n *Node) addChild(name string) *Node {
 	return node
 }
 
-// addHost adds a host to this node.
-func (n *Node) addHost(host string) {
+// AddHost adds a host to this node.
+func (n *Node) AddHost(host string) {
 	n.Hosts[host] = true
 }
 
-// sortChildren sorts children by name recursively, starting from this node.
-func (n *Node) sortChildren() {
+// SortChildren sorts children by name recursively, starting from this node.
+func (n *Node) SortChildren() {
 	if len(n.Children) > 0 {
 		sort.Slice(n.Children, func(i, j int) bool { return n.Children[i].Name < n.Children[j].Name })
 
 		for _, child := range n.Children {
-			child.sortChildren()
+			child.SortChildren()
 		}
 	}
 }
 
-// exportInventory exports the inventory tree into a map ready to be marshalled into a JSON representation of an Ansible inventory, starting from this node.
-func (n *Node) exportInventory(inventory map[string]*AnsibleGroup) {
+// ExportInventory exports the inventory tree into a map ready to be marshalled into a JSON representation of an Ansible inventory, starting from this node.
+func (n *Node) ExportInventory(inventory map[string]*AnsibleGroup) {
 	// Collect node children.
 	children := make([]string, 0, len(n.Children))
 	for _, child := range n.Children {
@@ -173,13 +173,13 @@ func (n *Node) exportInventory(inventory map[string]*AnsibleGroup) {
 	// Process other nodes recursively.
 	if len(n.Children) > 0 {
 		for _, child := range n.Children {
-			child.exportInventory(inventory)
+			child.ExportInventory(inventory)
 		}
 	}
 }
 
-// exportHosts exports the inventory tree into a map of hosts and groups they belong to, starting from this node.
-func (n *Node) exportHosts(hosts map[string][]string) {
+// ExportHosts exports the inventory tree into a map of hosts and groups they belong to, starting from this node.
+func (n *Node) ExportHosts(hosts map[string][]string) {
 	// Collect a list of unique group names for every host owned by this node.
 	for host := range n.Hosts {
 		collected := make(map[string]bool)
@@ -189,7 +189,7 @@ func (n *Node) exportHosts(hosts map[string][]string) {
 		collected[n.Name] = true
 
 		// Add all parent node names.
-		ancestors := n.getAncestors()
+		ancestors := n.GetAncestors()
 		for _, ancestor := range ancestors {
 			collected[ancestor.Name] = true
 		}
@@ -213,17 +213,17 @@ func (n *Node) exportHosts(hosts map[string][]string) {
 	// Process other nodes recursively.
 	if len(n.Children) > 0 {
 		for _, child := range n.Children {
-			child.exportHosts(hosts)
+			child.ExportHosts(hosts)
 		}
 	}
 }
 
-// exportGroups exports the inventory tree into a map of groups and hosts they contain, starting from this node.
-func (n *Node) exportGroups(groups map[string][]string) {
+// ExportGroups exports the inventory tree into a map of groups and hosts they contain, starting from this node.
+func (n *Node) ExportGroups(groups map[string][]string) {
 	hosts := make([]string, 0)
 
 	// Get all hosts that this group contains.
-	for host := range n.getAllHosts() {
+	for host := range n.GetAllHosts() {
 		hosts = append(hosts, host)
 	}
 	sort.Strings(hosts)
@@ -234,12 +234,12 @@ func (n *Node) exportGroups(groups map[string][]string) {
 	// Process other nodes recursively.
 	if len(n.Children) > 0 {
 		for _, child := range n.Children {
-			child.exportGroups(groups)
+			child.ExportGroups(groups)
 		}
 	}
 }
 
-// initTree initializes an empty inventory tree
-func initTree() *Node {
+// InitTree initializes an empty inventory tree
+func InitTree() *Node {
 	return &Node{Name: ansibleRootGroup, Parent: &Node{}, Children: make([]*Node, 0), Hosts: make(map[string]bool)}
 }

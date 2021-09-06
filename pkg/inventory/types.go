@@ -2,20 +2,19 @@ package inventory
 
 import (
 	"encoding/json"
+
+	"github.com/NeonSludge/ansible-dns-inventory/pkg/config"
+	"github.com/NeonSludge/ansible-dns-inventory/pkg/types"
 )
 
 type (
 	Inventory struct {
-		Config Config
-		Tree   *Node
-	}
-
-	// Config represents a configuration object.
-	Config interface {
-		GetString(key string) string
-		GetStringSlice(key string) []string
-		GetBool(key string) bool
-		GetInt(key string) int
+		// Inventory configuration.
+		Config types.Config
+		// Inventory datasource.
+		Datasource types.Datasource
+		// Inventory tree.
+		Tree *Node
 	}
 
 	// HostAttributes represents host attributes found in TXT records.
@@ -67,11 +66,11 @@ type (
 func (a *HostAttributes) MarshalJSON() ([]byte, error) {
 	attrs := make(map[string]string)
 
-	attrs[hostAttributeNames["OS"]] = a.OS
-	attrs[hostAttributeNames["ENV"]] = a.Env
-	attrs[hostAttributeNames["ROLE"]] = a.Role
-	attrs[hostAttributeNames["SRV"]] = a.Srv
-	attrs[hostAttributeNames["VARS"]] = a.Vars
+	attrs[config.ADIHostAttributeNames["OS"]] = a.OS
+	attrs[config.ADIHostAttributeNames["ENV"]] = a.Env
+	attrs[config.ADIHostAttributeNames["ROLE"]] = a.Role
+	attrs[config.ADIHostAttributeNames["SRV"]] = a.Srv
+	attrs[config.ADIHostAttributeNames["VARS"]] = a.Vars
 
 	return json.Marshal(attrs)
 }
@@ -80,11 +79,11 @@ func (a *HostAttributes) MarshalJSON() ([]byte, error) {
 func (a *HostAttributes) MarshalYAML() (interface{}, error) {
 	attrs := make(map[string]string)
 
-	attrs[hostAttributeNames["OS"]] = a.OS
-	attrs[hostAttributeNames["ENV"]] = a.Env
-	attrs[hostAttributeNames["ROLE"]] = a.Role
-	attrs[hostAttributeNames["SRV"]] = a.Srv
-	attrs[hostAttributeNames["VARS"]] = a.Vars
+	attrs[config.ADIHostAttributeNames["OS"]] = a.OS
+	attrs[config.ADIHostAttributeNames["ENV"]] = a.Env
+	attrs[config.ADIHostAttributeNames["ROLE"]] = a.Role
+	attrs[config.ADIHostAttributeNames["SRV"]] = a.Srv
+	attrs[config.ADIHostAttributeNames["VARS"]] = a.Vars
 
 	return attrs, nil
 }

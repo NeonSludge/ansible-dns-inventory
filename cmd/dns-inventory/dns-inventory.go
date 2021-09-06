@@ -7,8 +7,8 @@ import (
 	"os"
 
 	"github.com/NeonSludge/ansible-dns-inventory/internal/build"
-	"github.com/NeonSludge/ansible-dns-inventory/internal/inventory"
-	"github.com/NeonSludge/ansible-dns-inventory/internal/util"
+	"github.com/NeonSludge/ansible-dns-inventory/pkg/inventory"
+	"github.com/NeonSludge/ansible-dns-inventory/pkg/util"
 )
 
 func main() {
@@ -33,21 +33,19 @@ func main() {
 	}
 
 	if len(*hostFlag) == 0 {
-		// Acquire TXT records.
-		records := dnsInventory.GetAllRecords()
-		if len(records) == 0 {
-			log.Fatal("empty TXT records list")
+		var bytes []byte
+		var err error
+
+		// Acquire and parse host TXT records.
+		hosts, err := dnsInventory.GetHosts()
+		if err != nil {
+			log.Fatal(err)
 		}
 
-		// Parse TXT records.
-		hosts := dnsInventory.ParseRecords(records)
-
-		// Load DNS records into the inventory tree.
+		// Load host records into the inventory tree.
 		dnsInventory.ImportHosts(hosts)
 
 		// Export the inventory tree in various formats.
-		var bytes []byte
-		var err error
 		switch {
 		case *versionFlag:
 			fmt.Println("version:", build.Version)
@@ -67,7 +65,7 @@ func main() {
 		default:
 			export := make(map[string][]string)
 
-			// Export the inventory tree into a map.
+			// Export hosts or groups.
 			switch {
 			case *hostsFlag:
 				dnsInventory.ExportHosts(export)
@@ -84,17 +82,13 @@ func main() {
 
 		fmt.Println(string(bytes))
 	} else if len(*hostFlag) > 0 && dnsInventory.Config.GetBool("txt.vars.enabled") {
-		// Acquire host TXT records.
-		records, err := dnsInventory.GetHostRecords(*hostFlag)
+		// Acquire host variables.
+		vars, err := dnsInventory.GetHostVariables(*hostFlag)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		// Parse host TXT records.
-		attrs := dnsInventory.ParseRecords(records)[*hostFlag]
-
-		// Parse host variables.
-		bytes, err := dnsInventory.ParseVariables(attrs)
+		bytes, err := util.Marshal(vars, "json", dnsInventory.Config)
 		if err != nil {
 			log.Fatal(err)
 		}

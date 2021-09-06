@@ -1,3 +1,6 @@
+# Datasource type. Environment variable: ADI_DATASOURCE
+datasource: "dns"
+# DNS datasource configuration.
 dns:
   # DNS server address. Environment variable: ADI_DNS_SERVER
   server: "127.0.0.1:53"
