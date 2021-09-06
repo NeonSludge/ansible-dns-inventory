@@ -89,7 +89,7 @@ func (i *Inventory) GetAllRecords() []dns.RR {
 		var err error
 
 		if cfg.GetBool("dns.notransfer.enabled") {
-			rrs, err = i.GetRecords(zone)
+			rrs, err = i.GetRecords(cfg.GetString("dns.notransfer.host"), zone)
 		} else {
 			rrs, err = i.TransferZone(zone)
 		}
@@ -150,15 +150,15 @@ func (i *Inventory) TransferZone(zone string) ([]dns.RR, error) {
 }
 
 // GetRecords performs a DNS query for TXT records of a specific host.
-func (i *Inventory) GetRecords(host string) ([]dns.RR, error) {
+func (i *Inventory) GetRecords(host string, domain string) ([]dns.RR, error) {
 	cfg := i.Config
 	records := make([]dns.RR, 0)
 	var name string
 
-	if len(host) > 0 {
-		name = cfg.GetString("dns.notransfer.host") + "." + dns.Fqdn(host)
+	if len(domain) > 0 {
+		name = dns.Fqdn(host + "." + domain)
 	} else {
-		name = dns.Fqdn(cfg.GetString("dns.notransfer.host"))
+		name = dns.Fqdn(host)
 	}
 
 	t, err := time.ParseDuration(cfg.GetString("dns.timeout"))
@@ -203,7 +203,7 @@ func (i *Inventory) GetHostRecords(host string) ([]dns.RR, error) {
 		}
 
 		// Get no-transfer host records.
-		rrs, err = i.GetRecords(zone)
+		rrs, err = i.GetRecords(cfg.GetString("dns.notransfer.host"), zone)
 		if err != nil {
 			return records, err
 		}
@@ -217,7 +217,7 @@ func (i *Inventory) GetHostRecords(host string) ([]dns.RR, error) {
 		}
 	} else {
 		// No-transfer mode is disabled, no special logic is needed.
-		records, err = i.GetRecords(host)
+		records, err = i.GetRecords(host, "")
 		if err != nil {
 			return records, err
 		}
