@@ -1,5 +1,7 @@
 package types
 
+import "time"
+
 type (
 	// Config represents a configuration object.
 	Config interface {
@@ -11,6 +13,8 @@ type (
 		GetBool(key string) bool
 		// GetInt returns an 'int' configuration parameter value.
 		GetInt(key string) int
+		// GetDuration returns a 'time.Duration' configuration parameter value.
+		GetDuration(key string) time.Duration
 	}
 
 	Datasource interface {
@@ -18,6 +22,8 @@ type (
 		GetAllRecords() ([]*Record, error)
 		// GetHostRecords returns all records for a specific host.
 		GetHostRecords(host string) ([]*Record, error)
+		// Close closes datasource clients and performs other housekeeping.
+		Close()
 	}
 
 	Record struct {

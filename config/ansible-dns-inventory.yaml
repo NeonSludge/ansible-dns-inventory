@@ -27,6 +27,18 @@ dns:
     secret: "c2VjcmV0Cg=="
     # TSIG algorithm. Allowed values: 'hmac-sha1', hmac-sha224, 'hmac-sha256', 'hmac-sha384', 'hmac-sha512'. 'hmac-sha256' is used if an invalid value is specified. Environment variable: ADI_DNS_TSIG_ALGO
     algo: "hmac-sha256"
+# Etcd datasource configuration
+etcd:
+  # Etcd cluster endpoints. Environment variable: ADI_ETCD_ENDPOINTS (space-separated list)
+  endpoints:
+    - "127.0.0.1:2379"
+  # Network timeout for etcd requests. Environment variable: ADI_ETCD_TIMEOUT
+  timeout: "30s"
+  # Etcd k/v path prefix. Environment variable: ADI_ETCD_PREFIX
+  prefix: "ANSIBLE_INVENTORY"
+  # Etcd host zone list. Environment variable: ADI_DNS_ZONES (space-separated list)
+  zones:
+    - server.local.
 # TXT record parsing configuration.
 txt:
   # Key/value pair parsing configuration.

@@ -31,6 +31,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer dnsInventory.Datasource.Close()
 
 	if len(*hostFlag) == 0 {
 		var bytes []byte

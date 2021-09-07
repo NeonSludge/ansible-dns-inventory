@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
@@ -61,7 +62,7 @@ func New() (types.Config, error) {
 	v.SetDefault("datasource", "dns")
 
 	v.SetDefault("dns.server", "127.0.0.1:53")
-	v.SetDefault("dns.timeout", "30s")
+	v.SetDefault("dns.timeout", 30*time.Second)
 	v.SetDefault("dns.zones", []string{"server.local."})
 
 	v.SetDefault("dns.notransfer.enabled", false)
@@ -72,6 +73,11 @@ func New() (types.Config, error) {
 	v.SetDefault("dns.tsig.key", "axfr.")
 	v.SetDefault("dns.tsig.secret", "c2VjcmV0Cg==")
 	v.SetDefault("dns.tsig.algo", "hmac-sha256")
+
+	v.SetDefault("etcd.endpoints", []string{"127.0.0.1:2379"})
+	v.SetDefault("etcd.timeout", 30*time.Second)
+	v.SetDefault("etcd.prefix", "ANSIBLE_INVENTORY")
+	v.SetDefault("etcd.zones", []string{"server.local."})
 
 	v.SetDefault("txt.kv.separator", ";")
 	v.SetDefault("txt.kv.equalsign", "=")

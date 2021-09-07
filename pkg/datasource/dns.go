@@ -46,20 +46,7 @@ func (d *DNS) processRecords(rrs []dns.RR) []*types.Record {
 	records := make([]*types.Record, 0)
 
 	for _, rr := range rrs {
-		var name, attrs string
-
-		if d.Config.GetBool("dns.notransfer.enabled") {
-			name = strings.TrimSuffix(strings.Split(dns.Field(rr, dnsRrTxtField), d.Config.GetString("dns.notransfer.separator"))[0], ".")
-			attrs = strings.Split(dns.Field(rr, dnsRrTxtField), d.Config.GetString("dns.notransfer.separator"))[1]
-		} else {
-			name = strings.TrimSuffix(rr.Header().Name, ".")
-			attrs = dns.Field(rr, dnsRrTxtField)
-		}
-
-		records = append(records, &types.Record{
-			Hostname:   name,
-			Attributes: attrs,
-		})
+		records = append(records, d.processRecord(rr))
 	}
 
 	return records
@@ -78,7 +65,6 @@ func (d *DNS) GetAllRecords() ([]*types.Record, error) {
 		} else {
 			rrs, err = d.TransferZone(zone)
 		}
-
 		if err != nil {
 			// log.Printf("[%s] skipping zone: %v", zone, err)
 			continue
@@ -106,6 +92,10 @@ func (d *DNS) GetHostRecords(host string) ([]*types.Record, error) {
 				zone = z
 				break
 			}
+		}
+
+		if len(zone) == 0 {
+			return records, errors.New("failed to determine zone from hostname")
 		}
 
 		// Get no-transfer host records.
@@ -191,3 +181,5 @@ func (d *DNS) GetRecords(host string, domain string) ([]dns.RR, error) {
 
 	return records, nil
 }
+
+func (d *DNS) Close() {}
