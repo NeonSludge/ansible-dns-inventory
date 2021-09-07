@@ -18,13 +18,18 @@ const (
 )
 
 type (
+	// A DNS datasource implementation.
 	DNS struct {
-		Client   *dns.Client
+		// DNS client.
+		Client *dns.Client
+		// DNS transfer.
 		Transfer *dns.Transfer
-		Config   types.Config
+		// Inventory configuration.
+		Config types.Config
 	}
 )
 
+// Process a single DNS resource record.
 func (d *DNS) processRecord(rr dns.RR) *types.Record {
 	var name, attrs string
 
@@ -42,6 +47,7 @@ func (d *DNS) processRecord(rr dns.RR) *types.Record {
 	}
 }
 
+// Process several DNS resource records.
 func (d *DNS) processRecords(rrs []dns.RR) []*types.Record {
 	records := make([]*types.Record, 0)
 
@@ -52,7 +58,7 @@ func (d *DNS) processRecords(rrs []dns.RR) []*types.Record {
 	return records
 }
 
-// GetAllRecords acquires all available host records from the DNS server via an AXFR request or by collecting the no-transfer host records.
+// GetAllRecords acquires all available host records.
 func (d *DNS) GetAllRecords() ([]*types.Record, error) {
 	records := make([]*types.Record, 0)
 
@@ -63,7 +69,7 @@ func (d *DNS) GetAllRecords() ([]*types.Record, error) {
 		if d.Config.GetBool("dns.notransfer.enabled") {
 			rrs, err = d.GetRecords(d.Config.GetString("dns.notransfer.host"), zone)
 		} else {
-			rrs, err = d.TransferZone(zone)
+			rrs, err = d.GetZone(zone)
 		}
 		if err != nil {
 			// log.Printf("[%s] skipping zone: %v", zone, err)
@@ -124,8 +130,8 @@ func (d *DNS) GetHostRecords(host string) ([]*types.Record, error) {
 	return records, nil
 }
 
-// TransferZone performs a DNS zone transfer (AXFR).
-func (d *DNS) TransferZone(zone string) ([]dns.RR, error) {
+// GetZone acquires all records in a specific zone.
+func (d *DNS) GetZone(zone string) ([]dns.RR, error) {
 	records := make([]dns.RR, 0)
 
 	msg := new(dns.Msg)
@@ -157,7 +163,7 @@ func (d *DNS) TransferZone(zone string) ([]dns.RR, error) {
 	return records, nil
 }
 
-// GetRecords performs a DNS query for TXT records of a specific host.
+// GetRecords acquires all records for a specific host.
 func (d *DNS) GetRecords(host string, domain string) ([]dns.RR, error) {
 	records := make([]dns.RR, 0)
 	var name string
@@ -182,4 +188,5 @@ func (d *DNS) GetRecords(host string, domain string) ([]dns.RR, error) {
 	return records, nil
 }
 
+// Close datasource and perform housekeeping.
 func (d *DNS) Close() {}

@@ -14,14 +14,20 @@ import (
 )
 
 type (
+	// An etcd datasource implementation.
 	Etcd struct {
-		Client  *etcdv3.Client
+		// Etcd client.
+		Client *etcdv3.Client
+		// Etcd request context.
 		Context context.Context
-		Cancel  context.CancelFunc
-		Config  types.Config
+		// Etcd request context cancel function.
+		Cancel context.CancelFunc
+		// Inventory configuration.
+		Config types.Config
 	}
 )
 
+// Process several k/v pairs.
 func (e *Etcd) processKVs(kvs []*mvccpb.KeyValue) []*types.Record {
 	var name string
 	records := make([]*types.Record, 0)
@@ -119,6 +125,7 @@ func (e *Etcd) GetRecords(host string, zone string) ([]*mvccpb.KeyValue, error) 
 	return resp.Kvs, nil
 }
 
+// Close datasource and perform housekeeping.
 func (e *Etcd) Close() {
 	e.Cancel()
 	e.Client.Close()
