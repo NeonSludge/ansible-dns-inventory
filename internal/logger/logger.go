@@ -15,7 +15,7 @@ func New(level string) (types.InventoryLogger, error) {
 		"development": false,
 	  "level": "` + level + `",
 	  "encoding": "console",
-	  "outputPaths": ["stdout"],
+	  "outputPaths": ["stderr"],
 	  "errorOutputPaths": ["stderr"],
 	  "encoderConfig": {
 			"timeKey": "timestamp",
