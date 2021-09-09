@@ -3,16 +3,18 @@ package inventory
 import (
 	"encoding/json"
 
-	"github.com/NeonSludge/ansible-dns-inventory/pkg/config"
 	"github.com/NeonSludge/ansible-dns-inventory/pkg/types"
 )
+
+var ADIHostAttributeNames map[string]string
+var ADITxtKeysSeparator string
 
 type (
 	Inventory struct {
 		// Inventory configuration.
-		Config types.Config
+		Config *types.InventoryConfig
 		// Inventory datasource.
-		Datasource types.Datasource
+		Datasource types.InventoryDatasource
 		// Inventory tree.
 		Tree *Node
 	}
@@ -66,11 +68,11 @@ type (
 func (a *HostAttributes) MarshalJSON() ([]byte, error) {
 	attrs := make(map[string]string)
 
-	attrs[config.ADIHostAttributeNames["OS"]] = a.OS
-	attrs[config.ADIHostAttributeNames["ENV"]] = a.Env
-	attrs[config.ADIHostAttributeNames["ROLE"]] = a.Role
-	attrs[config.ADIHostAttributeNames["SRV"]] = a.Srv
-	attrs[config.ADIHostAttributeNames["VARS"]] = a.Vars
+	attrs[ADIHostAttributeNames["OS"]] = a.OS
+	attrs[ADIHostAttributeNames["ENV"]] = a.Env
+	attrs[ADIHostAttributeNames["ROLE"]] = a.Role
+	attrs[ADIHostAttributeNames["SRV"]] = a.Srv
+	attrs[ADIHostAttributeNames["VARS"]] = a.Vars
 
 	return json.Marshal(attrs)
 }
@@ -79,11 +81,11 @@ func (a *HostAttributes) MarshalJSON() ([]byte, error) {
 func (a *HostAttributes) MarshalYAML() (interface{}, error) {
 	attrs := make(map[string]string)
 
-	attrs[config.ADIHostAttributeNames["OS"]] = a.OS
-	attrs[config.ADIHostAttributeNames["ENV"]] = a.Env
-	attrs[config.ADIHostAttributeNames["ROLE"]] = a.Role
-	attrs[config.ADIHostAttributeNames["SRV"]] = a.Srv
-	attrs[config.ADIHostAttributeNames["VARS"]] = a.Vars
+	attrs[ADIHostAttributeNames["OS"]] = a.OS
+	attrs[ADIHostAttributeNames["ENV"]] = a.Env
+	attrs[ADIHostAttributeNames["ROLE"]] = a.Role
+	attrs[ADIHostAttributeNames["SRV"]] = a.Srv
+	attrs[ADIHostAttributeNames["VARS"]] = a.Vars
 
 	return attrs, nil
 }

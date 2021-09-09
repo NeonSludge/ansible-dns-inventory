@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/NeonSludge/ansible-dns-inventory/internal/build"
+	"github.com/NeonSludge/ansible-dns-inventory/internal/config"
 	"github.com/NeonSludge/ansible-dns-inventory/pkg/inventory"
 	"github.com/NeonSludge/ansible-dns-inventory/pkg/util"
 )
@@ -26,8 +27,14 @@ func main() {
 	versionFlag := flag.Bool("version", false, "display ansible-dns-inventory version and build info")
 	flag.Parse()
 
+	// Create a configuration object.
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	// Initialize a new inventory.
-	dnsInventory, err := inventory.New()
+	dnsInventory, err := inventory.New(cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -82,7 +89,7 @@ func main() {
 		}
 
 		fmt.Println(string(bytes))
-	} else if len(*hostFlag) > 0 && dnsInventory.Config.GetBool("txt.vars.enabled") {
+	} else if len(*hostFlag) > 0 && dnsInventory.Config.Txt.Vars.Enabled {
 		// Acquire host variables.
 		vars, err := dnsInventory.GetHostVariables(*hostFlag)
 		if err != nil {

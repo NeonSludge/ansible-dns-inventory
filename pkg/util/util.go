@@ -15,7 +15,7 @@ import (
 )
 
 // Marshal returns the JSON or YAML encoding of v.
-func Marshal(v interface{}, format string, cfg types.Config) ([]byte, error) {
+func Marshal(v interface{}, format string, cfg *types.InventoryConfig) ([]byte, error) {
 	var bytes []byte
 	var err error
 
@@ -38,7 +38,7 @@ func Marshal(v interface{}, format string, cfg types.Config) ([]byte, error) {
 // marshalYAMLFlow returns the flow-style YAML encoding of v which can be a map[string][]string or a map[string]*types.TXTAttrs.
 // It supports two formats of marshalling the values in the map: as a YAML list (format=yaml-list) and as a CSV string (format=yaml-csv).
 // TODO: deal with yaml.Marshal's issues with flow-style encoding and switch to using that instead of this hack.
-func marshalYAMLFlow(v interface{}, format string, cfg types.Config) ([]byte, error) {
+func marshalYAMLFlow(v interface{}, format string, cfg *types.InventoryConfig) ([]byte, error) {
 	buf := new(bytes.Buffer)
 
 	switch v := v.(type) {
@@ -66,7 +66,7 @@ func marshalYAMLFlow(v interface{}, format string, cfg types.Config) ([]byte, er
 			for _, attrs := range value {
 				switch format {
 				case "yaml-flow":
-					yaml = append(yaml, fmt.Sprintf("{\"%s\": \"%s\", \"%s\": \"%s\", \"%s\": \"%s\", \"%s\": \"%s\", \"%s\": \"%s\"}", cfg.GetString("txt.keys.os"), attrs.OS, cfg.GetString("txt.keys.env"), attrs.Env, cfg.GetString("txt.keys.role"), attrs.Role, cfg.GetString("txt.keys.srv"), attrs.Srv, cfg.GetString("txt.keys.vars"), attrs.Vars))
+					yaml = append(yaml, fmt.Sprintf("{\"%s\": \"%s\", \"%s\": \"%s\", \"%s\": \"%s\", \"%s\": \"%s\", \"%s\": \"%s\"}", cfg.Txt.Keys.Os, attrs.OS, cfg.Txt.Keys.Env, attrs.Env, cfg.Txt.Keys.Role, attrs.Role, cfg.Txt.Keys.Srv, attrs.Srv, cfg.Txt.Keys.Vars, attrs.Vars))
 				default:
 					return nil, fmt.Errorf("unsupported format: %s", format)
 				}

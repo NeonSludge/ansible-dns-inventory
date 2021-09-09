@@ -11,9 +11,6 @@ import (
 	"github.com/NeonSludge/ansible-dns-inventory/pkg/types"
 )
 
-var ADIHostAttributeNames map[string]string
-var ADITxtKeysSeparator string
-
 // tsigAlgo processes user-supplied TSIG algorithm names.
 func tsigAlgo(algo string) string {
 	switch algo {
@@ -24,8 +21,8 @@ func tsigAlgo(algo string) string {
 	}
 }
 
-// New initializes the configuration.
-func New() (types.Config, error) {
+// Load reads the configuration with Viper.
+func Load() (*types.InventoryConfig, error) {
 	v := viper.New()
 
 	// Load YAML configuration.
@@ -96,14 +93,11 @@ func New() (types.Config, error) {
 	// Process user-supplied TSIG algorithm name.
 	v.Set("dns.tsig.algo", tsigAlgo(v.GetString("dns.tsig.algo")))
 
-	ADIHostAttributeNames = make(map[string]string)
-	ADIHostAttributeNames["OS"] = v.GetString("txt.keys.os")
-	ADIHostAttributeNames["ENV"] = v.GetString("txt.keys.env")
-	ADIHostAttributeNames["ROLE"] = v.GetString("txt.keys.role")
-	ADIHostAttributeNames["SRV"] = v.GetString("txt.keys.srv")
-	ADIHostAttributeNames["VARS"] = v.GetString("txt.keys.vars")
+	cfg := &types.InventoryConfig{}
 
-	ADITxtKeysSeparator = v.GetString("txt.keys.separator")
+	if err := v.Unmarshal(cfg); err != nil {
+		return nil, errors.Wrap(err, "failed to unmarshal configuration")
+	}
 
-	return v, nil
+	return cfg, nil
 }

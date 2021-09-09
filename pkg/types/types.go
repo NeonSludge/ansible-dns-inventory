@@ -1,32 +1,64 @@
 package types
 
-import "time"
-
 type (
-	// Config represents a configuration object.
-	Config interface {
-		// GetString returns a 'string' configuration parameter value.
-		GetString(key string) string
-		// GetStringSlice returns a '[]string' configuration parameter value.
-		GetStringSlice(key string) []string
-		// GetBool returns a 'bool' configuration parameter value.
-		GetBool(key string) bool
-		// GetInt returns an 'int' configuration parameter value.
-		GetInt(key string) int
-		// GetDuration returns a 'time.Duration' configuration parameter value.
-		GetDuration(key string) time.Duration
+	// Inventory configuration.
+	InventoryConfig struct {
+		Datasource string `mapstructure:"datasource"`
+		DNS        struct {
+			Server     string   `mapstructure:"server"`
+			Timeout    string   `mapstructure:"timeout"`
+			Zones      []string `mapstructure:"zones"`
+			Notransfer struct {
+				Enabled   bool   `mapstructure:"enabled"`
+				Host      string `mapstructure:"host"`
+				Separator string `mapstructure:"separator"`
+			} `mapstructure:"notransfer"`
+			Tsig struct {
+				Enabled bool   `mapstructure:"enabled"`
+				Key     string `mapstructure:"key"`
+				Secret  string `mapstructure:"secret"`
+				Algo    string `mapstructure:"algo"`
+			} `mapstructure:"tsig"`
+		} `mapstructure:"dns"`
+		Etcd struct {
+			Endpoints []string `mapstructure:"endpoints"`
+			Timeout   string   `mapstructure:"timeout"`
+			Prefix    string   `mapstructure:"prefix"`
+			Zones     []string `mapstructure:"zones"`
+		} `mapstructure:"etcd"`
+		Txt struct {
+			Kv struct {
+				Separator string `mapstructure:"separator"`
+				Equalsign string `mapstructure:"equalsign"`
+			} `mapstructure:"kv"`
+			Vars struct {
+				Enabled   bool   `mapstructure:"enabled"`
+				Separator string `mapstructure:"separator"`
+				Equalsign string `mapstructure:"equalsign"`
+			} `mapstructure:"vars"`
+			Keys struct {
+				Separator string `mapstructure:"separator"`
+				Os        string `mapstructure:"os"`
+				Env       string `mapstructure:"env"`
+				Role      string `mapstructure:"role"`
+				Srv       string `mapstructure:"srv"`
+				Vars      string `mapstructure:"vars"`
+			} `mapstructure:"keys"`
+		} `mapstructure:"txt"`
 	}
 
-	Datasource interface {
+	// Inventory datasource
+	InventoryDatasource interface {
 		// GetAllRecords returns all host records.
-		GetAllRecords() ([]*Record, error)
+		GetAllRecords() ([]*InventoryDatasourceRecord, error)
 		// GetHostRecords returns all records for a specific host.
-		GetHostRecords(host string) ([]*Record, error)
+		GetHostRecords(host string) ([]*InventoryDatasourceRecord, error)
 		// Close closes datasource clients and performs other housekeeping.
 		Close()
 	}
 
-	Record struct {
+	// Inventory datasource record.
+	InventoryDatasourceRecord struct {
 		// Host name.
 		Hostname string
 		// Host attributes.

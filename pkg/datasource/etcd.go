@@ -22,14 +22,14 @@ type (
 		// Etcd request context cancel function.
 		Cancel context.CancelFunc
 		// Inventory configuration.
-		Config types.Config
+		Config *types.InventoryConfig
 	}
 )
 
 // Process several k/v pairs.
-func (e *Etcd) processKVs(kvs []*mvccpb.KeyValue) []*types.Record {
+func (e *Etcd) processKVs(kvs []*mvccpb.KeyValue) []*types.InventoryDatasourceRecord {
 	var name string
-	records := make([]*types.Record, 0)
+	records := make([]*types.InventoryDatasourceRecord, 0)
 
 	// Host attribute sets
 	sets := make(map[int]string)
@@ -55,7 +55,7 @@ func (e *Etcd) processKVs(kvs []*mvccpb.KeyValue) []*types.Record {
 	}
 
 	for _, set := range sets {
-		records = append(records, &types.Record{
+		records = append(records, &types.InventoryDatasourceRecord{
 			Hostname:   name,
 			Attributes: set,
 		})
@@ -75,10 +75,11 @@ func (e *Etcd) getPrefix(prefix string) ([]*mvccpb.KeyValue, error) {
 }
 
 // GetAllRecords acquires all available host records.
-func (e *Etcd) GetAllRecords() ([]*types.Record, error) {
-	records := make([]*types.Record, 0)
+func (e *Etcd) GetAllRecords() ([]*types.InventoryDatasourceRecord, error) {
+	cfg := e.Config
+	records := make([]*types.InventoryDatasourceRecord, 0)
 
-	for _, zone := range e.Config.GetStringSlice("etcd.zones") {
+	for _, zone := range cfg.Etcd.Zones {
 		kvs, err := e.getPrefix(zone)
 		if err != nil {
 			//  log...
@@ -92,11 +93,12 @@ func (e *Etcd) GetAllRecords() ([]*types.Record, error) {
 }
 
 // GetHostRecords acquires all available records for a specific host.
-func (e *Etcd) GetHostRecords(host string) ([]*types.Record, error) {
+func (e *Etcd) GetHostRecords(host string) ([]*types.InventoryDatasourceRecord, error) {
+	cfg := e.Config
 	var zone string
 
 	// Determine which zone we are working with.
-	for _, z := range e.Config.GetStringSlice("etcd.zones") {
+	for _, z := range cfg.Etcd.Zones {
 		if strings.HasSuffix(host, z) {
 			zone = z
 			break

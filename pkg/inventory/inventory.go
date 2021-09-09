@@ -10,8 +10,8 @@ import (
 	"github.com/pkg/errors"
 	"gopkg.in/validator.v2"
 
-	"github.com/NeonSludge/ansible-dns-inventory/pkg/config"
 	"github.com/NeonSludge/ansible-dns-inventory/pkg/datasource"
+	"github.com/NeonSludge/ansible-dns-inventory/pkg/types"
 )
 
 // safeAttr validates host attributes.
@@ -24,13 +24,13 @@ func safeAttr(v interface{}, param string) error {
 	re := "^[A-Za-z0-9"
 
 	// Deprecated: using '-' in group names.
-	if config.ADITxtKeysSeparator == "-" {
+	if ADITxtKeysSeparator == "-" {
 		re += "\\_"
 	}
 
 	switch param {
 	case "srv":
-		re += "\\,\\" + config.ADITxtKeysSeparator + "]*$"
+		re += "\\,\\" + ADITxtKeysSeparator + "]*$"
 	case "list":
 		re += "\\," + "]*$"
 	case "vars":
@@ -53,7 +53,7 @@ func safeAttr(v interface{}, param string) error {
 
 // ImportHosts loads a map of hosts and their attributes into the inventory tree.
 func (i *Inventory) ImportHosts(hosts map[string][]*HostAttributes) {
-	i.Tree.ImportHosts(hosts, i.Config.GetString("txt.keys.separator"))
+	i.Tree.ImportHosts(hosts, i.Config.Txt.Keys.Separator)
 	i.Tree.SortChildren()
 }
 
@@ -74,6 +74,7 @@ func (i *Inventory) ExportInventory(inventory map[string]*AnsibleGroup) {
 
 // GetHostVariables acquires a map of host variables specified via the 'VARS' attribute.
 func (i *Inventory) GetHostVariables(host string) (map[string]string, error) {
+	cfg := i.Config
 	variables := make(map[string]string)
 
 	records, err := i.Datasource.GetHostRecords(host)
@@ -89,10 +90,10 @@ func (i *Inventory) GetHostVariables(host string) (map[string]string, error) {
 		}
 
 		if len(attrs.Vars) > 0 {
-			pairs := strings.Split(attrs.Vars, i.Config.GetString("txt.vars.separator"))
+			pairs := strings.Split(attrs.Vars, cfg.Txt.Vars.Separator)
 
 			for _, p := range pairs {
-				kv := strings.Split(p, i.Config.GetString("txt.vars.equalsign"))
+				kv := strings.Split(p, cfg.Txt.Vars.Equalsign)
 				variables[kv[0]] = kv[1]
 			}
 		}
@@ -141,21 +142,21 @@ func (i *Inventory) GetHosts() (map[string][]*HostAttributes, error) {
 func (i *Inventory) ParseAttributes(raw string) (*HostAttributes, error) {
 	cfg := i.Config
 	attrs := &HostAttributes{}
-	items := strings.Split(raw, cfg.GetString("txt.kv.separator"))
+	items := strings.Split(raw, cfg.Txt.Kv.Separator)
 
 	for _, item := range items {
-		kv := strings.Split(item, cfg.GetString("txt.kv.equalsign"))
+		kv := strings.Split(item, cfg.Txt.Kv.Equalsign)
 		switch kv[0] {
-		case cfg.GetString("txt.keys.os"):
+		case cfg.Txt.Keys.Os:
 			attrs.OS = kv[1]
-		case cfg.GetString("txt.keys.env"):
+		case cfg.Txt.Keys.Env:
 			attrs.Env = kv[1]
-		case cfg.GetString("txt.keys.role"):
+		case cfg.Txt.Keys.Role:
 			attrs.Role = kv[1]
-		case cfg.GetString("txt.keys.srv"):
+		case cfg.Txt.Keys.Srv:
 			attrs.Srv = kv[1]
-		case cfg.GetString("txt.keys.vars"):
-			attrs.Vars = strings.Join(kv[1:], cfg.GetString("txt.kv.equalsign"))
+		case cfg.Txt.Keys.Vars:
+			attrs.Vars = strings.Join(kv[1:], cfg.Txt.Kv.Equalsign)
 		}
 	}
 
@@ -167,12 +168,15 @@ func (i *Inventory) ParseAttributes(raw string) (*HostAttributes, error) {
 }
 
 // New creates an instance of the DNS inventory.
-func New() (*Inventory, error) {
-	// Process configuration
-	cfg, err := config.New()
-	if err != nil {
-		return nil, errors.Wrap(err, "configuration initialization failure")
-	}
+func New(cfg *types.InventoryConfig) (*Inventory, error) {
+	// Setup package global state
+	ADIHostAttributeNames = make(map[string]string)
+	ADIHostAttributeNames["OS"] = cfg.Txt.Keys.Os
+	ADIHostAttributeNames["ENV"] = cfg.Txt.Keys.Env
+	ADIHostAttributeNames["ROLE"] = cfg.Txt.Keys.Role
+	ADIHostAttributeNames["SRV"] = cfg.Txt.Keys.Srv
+	ADIHostAttributeNames["VARS"] = cfg.Txt.Keys.Vars
+	ADITxtKeysSeparator = cfg.Txt.Keys.Separator
 
 	ds, err := datasource.New(cfg)
 	if err != nil {
