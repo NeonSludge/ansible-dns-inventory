@@ -78,7 +78,7 @@ func (i *Inventory) GetHostVariables(host string) (map[string]string, error) {
 
 	records, err := i.Datasource.GetHostRecords(host)
 	if err != nil {
-		return variables, errors.Wrap(err, "host record loading failure")
+		return nil, errors.Wrap(err, "host record loading failure")
 	}
 
 	for _, r := range records {
@@ -107,11 +107,11 @@ func (i *Inventory) GetHosts() (map[string][]*HostAttributes, error) {
 
 	records, err := i.Datasource.GetAllRecords()
 	if err != nil {
-		return hosts, errors.Wrap(err, "record loading failure")
+		return nil, errors.Wrap(err, "record loading failure")
 	}
 
 	if len(records) == 0 {
-		return hosts, errors.New("no TXT records found")
+		return nil, errors.New("no TXT records found")
 	}
 
 	for _, r := range records {
@@ -160,7 +160,7 @@ func (i *Inventory) ParseAttributes(raw string) (*HostAttributes, error) {
 	}
 
 	if err := validator.Validate(attrs); err != nil {
-		return attrs, errors.Wrap(err, "attribute validation error")
+		return nil, errors.Wrap(err, "attribute validation error")
 	}
 
 	return attrs, nil

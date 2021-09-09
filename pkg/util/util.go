@@ -29,7 +29,7 @@ func Marshal(v interface{}, format string, cfg types.Config) ([]byte, error) {
 	}
 
 	if err != nil {
-		return bytes, errors.Wrap(err, "marshalling error")
+		return nil, errors.Wrap(err, "marshalling error")
 	}
 
 	return bytes, nil
@@ -53,11 +53,11 @@ func marshalYAMLFlow(v interface{}, format string, cfg types.Config) ([]byte, er
 			case "yaml-csv":
 				yaml = fmt.Sprintf("\"%s\"", strings.Join(value, ","))
 			default:
-				return buf.Bytes(), fmt.Errorf("unsupported format: %s", format)
+				return nil, fmt.Errorf("unsupported format: %s", format)
 			}
 
 			if _, err := buf.WriteString(fmt.Sprintf("\"%s\": %s\n", key, yaml)); err != nil {
-				return buf.Bytes(), err
+				return nil, err
 			}
 		}
 	case map[string][]*inventory.HostAttributes:
@@ -68,16 +68,16 @@ func marshalYAMLFlow(v interface{}, format string, cfg types.Config) ([]byte, er
 				case "yaml-flow":
 					yaml = append(yaml, fmt.Sprintf("{\"%s\": \"%s\", \"%s\": \"%s\", \"%s\": \"%s\", \"%s\": \"%s\", \"%s\": \"%s\"}", cfg.GetString("txt.keys.os"), attrs.OS, cfg.GetString("txt.keys.env"), attrs.Env, cfg.GetString("txt.keys.role"), attrs.Role, cfg.GetString("txt.keys.srv"), attrs.Srv, cfg.GetString("txt.keys.vars"), attrs.Vars))
 				default:
-					return buf.Bytes(), fmt.Errorf("unsupported format: %s", format)
+					return nil, fmt.Errorf("unsupported format: %s", format)
 				}
 			}
 
 			if _, err := buf.WriteString(fmt.Sprintf("\"%s\": [%s]\n", key, strings.Join(yaml, ","))); err != nil {
-				return buf.Bytes(), err
+				return nil, err
 			}
 		}
 	default:
-		return buf.Bytes(), fmt.Errorf("unsupported format: %s", format)
+		return nil, fmt.Errorf("unsupported format: %s", format)
 	}
 
 	return buf.Bytes(), nil

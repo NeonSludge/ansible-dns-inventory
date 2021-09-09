@@ -22,7 +22,7 @@ type (
 	DNS struct {
 		// DNS client.
 		Client *dns.Client
-		// DNS transfer.
+		// DNS zone transfer parameters.
 		Transfer *dns.Transfer
 		// Inventory configuration.
 		Config types.Config
@@ -58,6 +58,61 @@ func (d *DNS) processRecords(rrs []dns.RR) []*types.Record {
 	return records
 }
 
+// Produce a fully qualified host name for use in DNS requests.
+func (d *DNS) makeFQDN(host string, zone string) string {
+	name := strings.TrimPrefix(host, ".")
+	domain := strings.TrimPrefix(zone, ".")
+
+	if len(domain) == 0 {
+		return dns.Fqdn(name)
+	}
+
+	return strings.TrimPrefix(dns.Fqdn(name+"."+domain), ".")
+}
+
+// getZone acquires TXT records for all hosts in a specific zone.
+func (d *DNS) getZone(zone string) ([]dns.RR, error) {
+	records := make([]dns.RR, 0)
+
+	msg := new(dns.Msg)
+	msg.SetAxfr(dns.Fqdn(zone))
+
+	if d.Config.GetBool("dns.tsig.enabled") {
+		d.Transfer.TsigSecret = map[string]string{d.Config.GetString("dns.tsig.key"): d.Config.GetString("dns.tsig.secret")}
+		msg.SetTsig(d.Config.GetString("dns.tsig.key"), d.Config.GetString("dns.tsig.algo"), 300, time.Now().Unix())
+	}
+
+	// Perform the transfer.
+	c, err := d.Transfer.In(msg, d.Config.GetString("dns.server"))
+	if err != nil {
+		return nil, errors.Wrap(err, "zone transfer failed")
+	}
+
+	// Process transferred records. Ignore anything that is not a TXT recordd. Ignore the special inventory record as well.
+	for e := range c {
+		for _, rr := range e.RR {
+			if rr.Header().Rrtype == dnsRrTxtType && rr.Header().Name != d.makeFQDN(d.Config.GetString("dns.notransfer.host"), zone) {
+				records = append(records, rr)
+			}
+		}
+	}
+
+	return records, nil
+}
+
+// getHost acquires all TXT records for a specific host.
+func (d *DNS) getHost(host string) ([]dns.RR, error) {
+	msg := new(dns.Msg)
+	msg.SetQuestion(host, dns.TypeTXT)
+
+	rx, _, err := d.Client.Exchange(msg, d.Config.GetString("dns.server"))
+	if err != nil {
+		return nil, errors.Wrap(err, "dns request failed")
+	}
+
+	return rx.Answer, nil
+}
+
 // GetAllRecords acquires all available host records.
 func (d *DNS) GetAllRecords() ([]*types.Record, error) {
 	records := make([]*types.Record, 0)
@@ -67,9 +122,9 @@ func (d *DNS) GetAllRecords() ([]*types.Record, error) {
 		var err error
 
 		if d.Config.GetBool("dns.notransfer.enabled") {
-			rrs, err = d.GetRecords(d.Config.GetString("dns.notransfer.host"), zone)
+			rrs, err = d.getHost(d.makeFQDN(d.Config.GetString("dns.notransfer.host"), zone))
 		} else {
-			rrs, err = d.GetZone(zone)
+			rrs, err = d.getZone(d.makeFQDN("", zone))
 		}
 		if err != nil {
 			// log.Printf("[%s] skipping zone: %v", zone, err)
@@ -101,13 +156,13 @@ func (d *DNS) GetHostRecords(host string) ([]*types.Record, error) {
 		}
 
 		if len(zone) == 0 {
-			return records, errors.New("failed to determine zone from hostname")
+			return nil, errors.New("failed to determine zone from hostname")
 		}
 
 		// Get no-transfer host records.
-		rrs, err = d.GetRecords(d.Config.GetString("dns.notransfer.host"), zone)
+		rrs, err = d.getHost(d.makeFQDN(d.Config.GetString("dns.notransfer.host"), zone))
 		if err != nil {
-			return records, err
+			return nil, err
 		}
 
 		// Filter out the irrelevant records.
@@ -119,71 +174,13 @@ func (d *DNS) GetHostRecords(host string) ([]*types.Record, error) {
 		}
 	} else {
 		// No-transfer mode is disabled, no special logic is needed.
-		rrs, err := d.GetRecords(host, "")
+		rrs, err := d.getHost(d.makeFQDN(host, ""))
 		if err != nil {
-			return records, err
+			return nil, err
 		}
 
 		records = append(records, d.processRecords(rrs)...)
 	}
-
-	return records, nil
-}
-
-// GetZone acquires all records in a specific zone.
-func (d *DNS) GetZone(zone string) ([]dns.RR, error) {
-	records := make([]dns.RR, 0)
-
-	msg := new(dns.Msg)
-	msg.SetAxfr(dns.Fqdn(zone))
-
-	if d.Config.GetBool("dns.tsig.enabled") {
-		d.Transfer.TsigSecret = map[string]string{d.Config.GetString("dns.tsig.key"): d.Config.GetString("dns.tsig.secret")}
-		msg.SetTsig(d.Config.GetString("dns.tsig.key"), d.Config.GetString("dns.tsig.algo"), 300, time.Now().Unix())
-	}
-
-	// Perform the transfer.
-	c, err := d.Transfer.In(msg, d.Config.GetString("dns.server"))
-	if err != nil {
-		return records, errors.Wrap(err, "zone transfer failed")
-	}
-
-	// Process transferred records. Ignore anything that is not a TXT recordd. Ignore the special inventory record as well.
-	for e := range c {
-		for _, rr := range e.RR {
-			if rr.Header().Rrtype == dnsRrTxtType && rr.Header().Name != dns.Fqdn(d.Config.GetString("dns.notransfer.host")+"."+zone) {
-				records = append(records, rr)
-			}
-		}
-	}
-	if len(records) == 0 {
-		return records, errors.New("no txt records found")
-	}
-
-	return records, nil
-}
-
-// GetRecords acquires all records for a specific host.
-func (d *DNS) GetRecords(host string, domain string) ([]dns.RR, error) {
-	records := make([]dns.RR, 0)
-	var name string
-
-	if len(domain) > 0 {
-		name = dns.Fqdn(host + "." + domain)
-	} else {
-		name = dns.Fqdn(host)
-	}
-
-	msg := new(dns.Msg)
-	msg.SetQuestion(name, dns.TypeTXT)
-
-	rx, _, err := d.Client.Exchange(msg, d.Config.GetString("dns.server"))
-	if err != nil {
-		return records, errors.Wrap(err, "dns request failed")
-	} else if len(rx.Answer) == 0 {
-		return records, errors.New("no txt records found")
-	}
-	records = rx.Answer
 
 	return records, nil
 }

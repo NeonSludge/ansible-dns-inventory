@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/miekg/dns"
 	"github.com/pkg/errors"
 	"go.etcd.io/etcd/api/v3/mvccpb"
 	etcdv3 "go.etcd.io/etcd/client/v3"
@@ -65,12 +64,22 @@ func (e *Etcd) processKVs(kvs []*mvccpb.KeyValue) []*types.Record {
 	return records
 }
 
+// getPrefix acquires all key/value records for a specific prefix.
+func (e *Etcd) getPrefix(prefix string) ([]*mvccpb.KeyValue, error) {
+	resp, err := e.Client.Get(e.Context, prefix, etcdv3.WithPrefix())
+	if err != nil {
+		return nil, errors.Wrap(err, "etcd request failure")
+	}
+
+	return resp.Kvs, nil
+}
+
 // GetAllRecords acquires all available host records.
 func (e *Etcd) GetAllRecords() ([]*types.Record, error) {
 	records := make([]*types.Record, 0)
 
 	for _, zone := range e.Config.GetStringSlice("etcd.zones") {
-		kvs, err := e.GetZone(zone)
+		kvs, err := e.getPrefix(zone)
 		if err != nil {
 			//  log...
 			continue
@@ -88,7 +97,7 @@ func (e *Etcd) GetHostRecords(host string) ([]*types.Record, error) {
 
 	// Determine which zone we are working with.
 	for _, z := range e.Config.GetStringSlice("etcd.zones") {
-		if strings.HasSuffix(dns.Fqdn(host), dns.Fqdn(z)) {
+		if strings.HasSuffix(host, z) {
 			zone = z
 			break
 		}
@@ -98,31 +107,13 @@ func (e *Etcd) GetHostRecords(host string) ([]*types.Record, error) {
 		return nil, errors.New("failed to determine zone from hostname")
 	}
 
-	kvs, err := e.GetRecords(host, zone)
+	prefix := zone + "/" + host
+	kvs, err := e.getPrefix(prefix)
 	if err != nil {
 		return nil, err
 	}
 
 	return e.processKVs(kvs), nil
-}
-
-// GetZone acquires all records in a specific zone.
-func (e *Etcd) GetZone(zone string) ([]*mvccpb.KeyValue, error) {
-	return e.GetRecords("", zone)
-}
-
-// GetRecords acquires all records for a specific host.
-func (e *Etcd) GetRecords(host string, zone string) ([]*mvccpb.KeyValue, error) {
-	resp, err := e.Client.Get(e.Context, zone+"/"+host, etcdv3.WithPrefix())
-	if err != nil {
-		return nil, errors.Wrap(err, "etcd request failure")
-	}
-
-	if len(resp.Kvs) == 0 {
-		return nil, errors.New("no etcd records found")
-	}
-
-	return resp.Kvs, nil
 }
 
 // Close datasource and perform housekeeping.
