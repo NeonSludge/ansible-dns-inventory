@@ -3,7 +3,6 @@ package config
 import (
 	"os"
 	"strings"
-	"time"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
@@ -59,7 +58,7 @@ func Load() (*types.InventoryConfig, error) {
 	v.SetDefault("datasource", "dns")
 
 	v.SetDefault("dns.server", "127.0.0.1:53")
-	v.SetDefault("dns.timeout", 30*time.Second)
+	v.SetDefault("dns.timeout", "30s")
 	v.SetDefault("dns.zones", []string{"server.local."})
 
 	v.SetDefault("dns.notransfer.enabled", false)
@@ -72,7 +71,7 @@ func Load() (*types.InventoryConfig, error) {
 	v.SetDefault("dns.tsig.algo", "hmac-sha256")
 
 	v.SetDefault("etcd.endpoints", []string{"127.0.0.1:2379"})
-	v.SetDefault("etcd.timeout", 30*time.Second)
+	v.SetDefault("etcd.timeout", "30s")
 	v.SetDefault("etcd.prefix", "ANSIBLE_INVENTORY")
 	v.SetDefault("etcd.zones", []string{"server.local."})
 
