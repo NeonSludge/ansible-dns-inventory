@@ -8,6 +8,7 @@ import (
 
 	"github.com/NeonSludge/ansible-dns-inventory/internal/build"
 	"github.com/NeonSludge/ansible-dns-inventory/internal/config"
+	"github.com/NeonSludge/ansible-dns-inventory/internal/logger"
 	"github.com/NeonSludge/ansible-dns-inventory/pkg/inventory"
 	"github.com/NeonSludge/ansible-dns-inventory/pkg/util"
 )
@@ -30,13 +31,24 @@ func main() {
 	// Create a configuration object.
 	cfg, err := config.Load()
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println("Fatal error: ", err)
+		os.Exit(1)
 	}
+
+	// Create a global logger.
+	logger, err := logger.New("info")
+	if err != nil {
+		fmt.Println("Fatal error: ", err)
+		os.Exit(1)
+	}
+
+	// Pass the global logger to the inventory library.
+	cfg.Logger = logger
 
 	// Initialize a new inventory.
 	dnsInventory, err := inventory.New(cfg)
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal(err)
 	}
 	defer dnsInventory.Datasource.Close()
 
@@ -47,7 +59,7 @@ func main() {
 		// Acquire and parse host TXT records.
 		hosts, err := dnsInventory.GetHosts()
 		if err != nil {
-			log.Fatal(err)
+			logger.Fatal(err)
 		}
 
 		// Load host records into the inventory tree.
@@ -85,7 +97,7 @@ func main() {
 		}
 
 		if err != nil {
-			log.Fatal(err)
+			logger.Fatal(err)
 		}
 
 		fmt.Println(string(bytes))
@@ -93,12 +105,12 @@ func main() {
 		// Acquire host variables.
 		vars, err := dnsInventory.GetHostVariables(*hostFlag)
 		if err != nil {
-			log.Fatal(err)
+			logger.Fatal(err)
 		}
 
 		bytes, err := util.Marshal(vars, "json", dnsInventory.Config)
 		if err != nil {
-			log.Fatal(err)
+			logger.Fatal(err)
 		}
 
 		fmt.Println(string(bytes))

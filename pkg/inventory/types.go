@@ -15,6 +15,8 @@ type (
 		Config *types.InventoryConfig
 		// Inventory datasource.
 		Datasource types.InventoryDatasource
+		// Inventory logger.
+		Logger types.InventoryLogger
 		// Inventory tree.
 		Tree *Node
 	}

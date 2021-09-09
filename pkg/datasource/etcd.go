@@ -23,11 +23,14 @@ type (
 		Cancel context.CancelFunc
 		// Inventory configuration.
 		Config *types.InventoryConfig
+		// Inventory logger.
+		Logger types.InventoryLogger
 	}
 )
 
 // Process several k/v pairs.
 func (e *Etcd) processKVs(kvs []*mvccpb.KeyValue) []*types.InventoryDatasourceRecord {
+	log := e.Logger
 	var name string
 	records := make([]*types.InventoryDatasourceRecord, 0)
 
@@ -41,7 +44,7 @@ func (e *Etcd) processKVs(kvs []*mvccpb.KeyValue) []*types.InventoryDatasourceRe
 		// Determine which set of host attributes we are working with.
 		num, err := strconv.Atoi(key[2])
 		if err != nil {
-			// log...
+			log.Warnf("[%s] skipping host attributes set: %v", key[1], err)
 			continue
 		}
 
@@ -77,12 +80,13 @@ func (e *Etcd) getPrefix(prefix string) ([]*mvccpb.KeyValue, error) {
 // GetAllRecords acquires all available host records.
 func (e *Etcd) GetAllRecords() ([]*types.InventoryDatasourceRecord, error) {
 	cfg := e.Config
+	log := e.Logger
 	records := make([]*types.InventoryDatasourceRecord, 0)
 
 	for _, zone := range cfg.Etcd.Zones {
 		kvs, err := e.getPrefix(zone)
 		if err != nil {
-			//  log...
+			log.Warnf("[%s] skipping zone: %v", zone, err)
 			continue
 		}
 

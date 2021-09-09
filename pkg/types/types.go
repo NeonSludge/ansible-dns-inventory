@@ -3,6 +3,9 @@ package types
 type (
 	// Inventory configuration.
 	InventoryConfig struct {
+		// A logger for the inventory.
+		// By default, the global zap.SugaredLogger is used.
+		Logger InventoryLogger
 		// Datasource type.
 		// Currently supported: dns, etcd.
 		Datasource string `mapstructure:"datasource"`
@@ -99,5 +102,19 @@ type (
 		Hostname string
 		// Host attributes.
 		Attributes string
+	}
+
+	// Inventory logger.
+	InventoryLogger interface {
+		Info(args ...interface{})
+		Infof(template string, args ...interface{})
+		Warn(args ...interface{})
+		Warnf(template string, args ...interface{})
+		Error(args ...interface{})
+		Errorf(template string, args ...interface{})
+		Fatal(args ...interface{})
+		Fatalf(template string, args ...interface{})
+		Debug(args ...interface{})
+		Debugf(template string, args ...interface{})
 	}
 )

@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 	etcdv3 "go.etcd.io/etcd/client/v3"
 	etcdns "go.etcd.io/etcd/client/v3/namespace"
+	"go.uber.org/zap"
 
 	"github.com/NeonSludge/ansible-dns-inventory/pkg/types"
 )
@@ -15,6 +16,14 @@ import (
 // New creates a datasource base on the configuration.
 func New(cfg *types.InventoryConfig) (types.InventoryDatasource, error) {
 	var ds types.InventoryDatasource
+
+	// Initialize logger.
+	var logger types.InventoryLogger
+	if cfg.Logger != nil {
+		logger = cfg.Logger
+	} else {
+		logger = zap.S()
+	}
 
 	// Select datasource implementation.
 	switch cfg.Datasource {
@@ -34,6 +43,7 @@ func New(cfg *types.InventoryConfig) (types.InventoryDatasource, error) {
 				WriteTimeout: t,
 			},
 			Config: cfg,
+			Logger: logger,
 		}
 	case "etcd":
 		t, err := time.ParseDuration(cfg.Etcd.Timeout)
@@ -62,6 +72,7 @@ func New(cfg *types.InventoryConfig) (types.InventoryDatasource, error) {
 			Context: ctx,
 			Cancel:  cnc,
 			Config:  cfg,
+			Logger:  logger,
 		}
 	default:
 		return nil, errors.Errorf("unknown datasource type: %s", cfg.Datasource)

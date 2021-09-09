@@ -2,12 +2,12 @@ package inventory
 
 import (
 	"fmt"
-	"log"
 	"reflect"
 	"regexp"
 	"strings"
 
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
 	"gopkg.in/validator.v2"
 
 	"github.com/NeonSludge/ansible-dns-inventory/pkg/datasource"
@@ -75,6 +75,7 @@ func (i *Inventory) ExportInventory(inventory map[string]*AnsibleGroup) {
 // GetHostVariables acquires a map of host variables specified via the 'VARS' attribute.
 func (i *Inventory) GetHostVariables(host string) (map[string]string, error) {
 	cfg := i.Config
+	log := i.Logger
 	variables := make(map[string]string)
 
 	records, err := i.Datasource.GetHostRecords(host)
@@ -85,7 +86,7 @@ func (i *Inventory) GetHostVariables(host string) (map[string]string, error) {
 	for _, r := range records {
 		attrs, err := i.ParseAttributes(r.Attributes)
 		if err != nil {
-			log.Printf("[%s] skipping host record: %v", r.Hostname, err)
+			log.Warnf("[%s] skipping host record: %v", r.Hostname, err)
 			continue
 		}
 
@@ -104,6 +105,7 @@ func (i *Inventory) GetHostVariables(host string) (map[string]string, error) {
 
 // GetHosts acquires a map of all hosts and their attributes.
 func (i *Inventory) GetHosts() (map[string][]*HostAttributes, error) {
+	log := i.Logger
 	hosts := make(map[string][]*HostAttributes)
 
 	records, err := i.Datasource.GetAllRecords()
@@ -112,13 +114,13 @@ func (i *Inventory) GetHosts() (map[string][]*HostAttributes, error) {
 	}
 
 	if len(records) == 0 {
-		return nil, errors.New("no TXT records found")
+		return nil, errors.New("no host records found")
 	}
 
 	for _, r := range records {
 		attrs, err := i.ParseAttributes(r.Attributes)
 		if err != nil {
-			log.Printf("[%s] skipping host record: %v", r.Hostname, err)
+			log.Warnf("[%s] skipping host record: %v", r.Hostname, err)
 			continue
 		}
 
@@ -178,12 +180,21 @@ func New(cfg *types.InventoryConfig) (*Inventory, error) {
 	ADIHostAttributeNames["VARS"] = cfg.Txt.Keys.Vars
 	ADITxtKeysSeparator = cfg.Txt.Keys.Separator
 
+	// Initialize logger.
+	var logger types.InventoryLogger
+	if cfg.Logger != nil {
+		logger = cfg.Logger
+	} else {
+		logger = zap.S()
+	}
+
+	// Initialize datasource.
 	ds, err := datasource.New(cfg)
 	if err != nil {
 		return nil, errors.Wrap(err, "datasource initialization failure")
 	}
 
-	// Setup struct validators.
+	// Initialize struct validators.
 	if err := validator.SetValidationFunc("safe", safeAttr); err != nil {
 		return nil, errors.Wrap(err, "validator initialization failure")
 	}
@@ -191,6 +202,7 @@ func New(cfg *types.InventoryConfig) (*Inventory, error) {
 	i := &Inventory{
 		Config:     cfg,
 		Datasource: ds,
+		Logger:     logger,
 		Tree:       InitTree(),
 	}
 

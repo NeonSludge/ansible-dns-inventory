@@ -26,6 +26,8 @@ type (
 		Transfer *dns.Transfer
 		// Inventory configuration.
 		Config *types.InventoryConfig
+		// Inventory logger.
+		Logger types.InventoryLogger
 	}
 )
 
@@ -119,6 +121,7 @@ func (d *DNS) getHost(host string) ([]dns.RR, error) {
 // GetAllRecords acquires all available host records.
 func (d *DNS) GetAllRecords() ([]*types.InventoryDatasourceRecord, error) {
 	cfg := d.Config
+	log := d.Logger
 	records := make([]*types.InventoryDatasourceRecord, 0)
 
 	for _, zone := range cfg.DNS.Zones {
@@ -131,7 +134,7 @@ func (d *DNS) GetAllRecords() ([]*types.InventoryDatasourceRecord, error) {
 			rrs, err = d.getZone(d.makeFQDN("", zone))
 		}
 		if err != nil {
-			// log.Printf("[%s] skipping zone: %v", zone, err)
+			log.Warnf("[%s] skipping zone: %v", zone, err)
 			continue
 		}
 
