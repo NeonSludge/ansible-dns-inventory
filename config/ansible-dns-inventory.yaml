@@ -27,7 +27,7 @@ dns:
     secret: "c2VjcmV0Cg=="
     # TSIG algorithm. Allowed values: 'hmac-sha1', hmac-sha224, 'hmac-sha256', 'hmac-sha384', 'hmac-sha512'. 'hmac-sha256' is used if an invalid value is specified. Environment variable: ADI_DNS_TSIG_ALGO
     algo: "hmac-sha256"
-# Etcd datasource configuration
+# Etcd datasource configuration.
 etcd:
   # Etcd cluster endpoints. Environment variable: ADI_ETCD_ENDPOINTS (space-separated list)
   endpoints:
@@ -39,7 +39,7 @@ etcd:
   # Etcd host zone list. Environment variable: ADI_DNS_ZONES (space-separated list)
   zones:
     - server.local.
-# TXT record parsing configuration.
+# Host record parsing configuration.
 txt:
   # Key/value pair parsing configuration.
   kv:
@@ -55,7 +55,7 @@ txt:
     separator: ","
     # Separator between a key and a value. Environment variable: ADI_TXT_VARS_EQUALSIGN
     equalsign: "="
-  # Host attribute parsing configuration
+  # Host attributes parsing configuration.
   keys:
     # Separator between elements of an Ansible group name. Environment variable: ADI_TXT_KEYS_SEPARATOR
     separator: "_"
