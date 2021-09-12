@@ -137,22 +137,26 @@ func (e *EtcdDatasource) Close() {
 func makeEtcdTLSConfig(cfg *Config) (*tls.Config, error) {
 	var tlsCAPool *x509.CertPool
 	var tlsKeyPair tls.Certificate
-	var tlsErr error
+	var err error
 
 	if len(cfg.Etcd.TLS.CA.PEM) > 0 {
-		tlsCAPool, tlsErr = tlsCAPoolFromPEM(cfg.Etcd.TLS.CA.Path)
+		tlsCAPool, err = tlsCAPoolFromPEM(cfg.Etcd.TLS.CA.Path)
 	} else if len(cfg.Etcd.TLS.CA.Path) > 0 {
-		tlsCAPool, tlsErr = tlsCAPoolFromFile(cfg.Etcd.TLS.CA.Path)
+		tlsCAPool, err = tlsCAPoolFromFile(cfg.Etcd.TLS.CA.Path)
+	}
+
+	if err != nil {
+		return nil, errors.Wrap(err, "TLS configuration error")
 	}
 
 	if len(cfg.Etcd.TLS.Certificate.PEM) > 0 && len(cfg.Etcd.TLS.Key.PEM) > 0 {
-		tlsKeyPair, tlsErr = tlsKeyPairFromPEM(cfg.Etcd.TLS.Certificate.PEM, cfg.Etcd.TLS.Key.PEM)
+		tlsKeyPair, err = tlsKeyPairFromPEM(cfg.Etcd.TLS.Certificate.PEM, cfg.Etcd.TLS.Key.PEM)
 	} else if len(cfg.Etcd.TLS.Certificate.Path) > 0 && len(cfg.Etcd.TLS.Key.Path) > 0 {
-		tlsKeyPair, tlsErr = tlsKeyPairFromFile(cfg.Etcd.TLS.Certificate.Path, cfg.Etcd.TLS.Key.Path)
+		tlsKeyPair, err = tlsKeyPairFromFile(cfg.Etcd.TLS.Certificate.Path, cfg.Etcd.TLS.Key.Path)
 	}
 
-	if tlsErr != nil {
-		return nil, errors.Wrap(tlsErr, "TLS initialization failure")
+	if err != nil {
+		return nil, errors.Wrap(err, "TLS configuration error")
 	}
 
 	return &tls.Config{
