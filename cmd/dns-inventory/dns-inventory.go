@@ -36,19 +36,19 @@ func main() {
 	}
 
 	// Create a global logger.
-	logger, err := logger.New("info")
+	log, err := logger.New("info")
 	if err != nil {
 		fmt.Println("Fatal error: ", err)
 		os.Exit(1)
 	}
 
 	// Pass the global logger to the inventory library.
-	cfg.Logger = logger
+	cfg.Logger = log
 
 	// Initialize a new inventory.
 	dnsInventory, err := inventory.New(cfg)
 	if err != nil {
-		logger.Fatal(err)
+		log.Fatal(err)
 	}
 	defer dnsInventory.Datasource.Close()
 
@@ -59,7 +59,7 @@ func main() {
 		// Acquire and parse host TXT records.
 		hosts, err := dnsInventory.GetHosts()
 		if err != nil {
-			logger.Fatal(err)
+			log.Fatal(err)
 		}
 
 		// Load host records into the inventory tree.
@@ -97,7 +97,7 @@ func main() {
 		}
 
 		if err != nil {
-			logger.Fatal(err)
+			log.Fatal(err)
 		}
 
 		fmt.Println(string(bytes))
@@ -105,12 +105,12 @@ func main() {
 		// Acquire host variables.
 		vars, err := dnsInventory.GetHostVariables(*hostFlag)
 		if err != nil {
-			logger.Fatal(err)
+			log.Fatal(err)
 		}
 
 		bytes, err := util.Marshal(vars, "json", dnsInventory.Config)
 		if err != nil {
-			logger.Fatal(err)
+			log.Fatal(err)
 		}
 
 		fmt.Println(string(bytes))

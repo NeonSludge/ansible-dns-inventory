@@ -7,9 +7,9 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"go.uber.org/zap"
 	"gopkg.in/validator.v2"
 
+	"github.com/NeonSludge/ansible-dns-inventory/internal/logger"
 	"github.com/NeonSludge/ansible-dns-inventory/pkg/datasource"
 	"github.com/NeonSludge/ansible-dns-inventory/pkg/types"
 )
@@ -181,11 +181,12 @@ func New(cfg *types.InventoryConfig) (*Inventory, error) {
 	ADITxtKeysSeparator = cfg.Txt.Keys.Separator
 
 	// Initialize logger.
-	var logger types.InventoryLogger
-	if cfg.Logger != nil {
-		logger = cfg.Logger
-	} else {
-		logger = zap.S()
+	if cfg.Logger == nil {
+		l, err := logger.New("info")
+		if err != nil {
+			return nil, errors.Wrap(err, "logger initialization failure")
+		}
+		cfg.Logger = l
 	}
 
 	// Initialize datasource.
@@ -202,7 +203,6 @@ func New(cfg *types.InventoryConfig) (*Inventory, error) {
 	i := &Inventory{
 		Config:     cfg,
 		Datasource: ds,
-		Logger:     logger,
 		Tree:       InitTree(),
 	}
 
