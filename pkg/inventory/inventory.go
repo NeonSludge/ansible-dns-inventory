@@ -12,8 +12,8 @@ import (
 	"github.com/NeonSludge/ansible-dns-inventory/internal/logger"
 )
 
-var ADIHostAttributeNames map[string]string
-var ADITxtKeysSeparator string
+var adiHostAttributeNames map[string]string
+var adiTxtKeysSeparator string
 
 // safeAttr validates host attributes.
 func safeAttr(v interface{}, param string) error {
@@ -25,13 +25,13 @@ func safeAttr(v interface{}, param string) error {
 	re := "^[A-Za-z0-9"
 
 	// Deprecated: using '-' in group names.
-	if ADITxtKeysSeparator == "-" {
+	if adiTxtKeysSeparator == "-" {
 		re += "\\_"
 	}
 
 	switch param {
 	case "srv":
-		re += "\\,\\" + ADITxtKeysSeparator + "]*$"
+		re += "\\,\\" + adiTxtKeysSeparator + "]*$"
 	case "list":
 		re += "\\," + "]*$"
 	case "vars":
@@ -173,13 +173,13 @@ func (i *Inventory) ParseAttributes(raw string) (*HostAttributes, error) {
 // New creates an instance of the DNS inventory.
 func New(cfg *Config) (*Inventory, error) {
 	// Setup package global state
-	ADIHostAttributeNames = make(map[string]string)
-	ADIHostAttributeNames["OS"] = cfg.Txt.Keys.Os
-	ADIHostAttributeNames["ENV"] = cfg.Txt.Keys.Env
-	ADIHostAttributeNames["ROLE"] = cfg.Txt.Keys.Role
-	ADIHostAttributeNames["SRV"] = cfg.Txt.Keys.Srv
-	ADIHostAttributeNames["VARS"] = cfg.Txt.Keys.Vars
-	ADITxtKeysSeparator = cfg.Txt.Keys.Separator
+	adiHostAttributeNames = make(map[string]string)
+	adiHostAttributeNames["OS"] = cfg.Txt.Keys.Os
+	adiHostAttributeNames["ENV"] = cfg.Txt.Keys.Env
+	adiHostAttributeNames["ROLE"] = cfg.Txt.Keys.Role
+	adiHostAttributeNames["SRV"] = cfg.Txt.Keys.Srv
+	adiHostAttributeNames["VARS"] = cfg.Txt.Keys.Vars
+	adiTxtKeysSeparator = cfg.Txt.Keys.Separator
 
 	// Initialize logger.
 	if cfg.Logger == nil {

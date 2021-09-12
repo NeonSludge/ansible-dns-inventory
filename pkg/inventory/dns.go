@@ -16,7 +16,7 @@ const (
 )
 
 type (
-	// A DNS datasource implementation.
+	// DNSDatasource implements a DNS datasource.
 	DNSDatasource struct {
 		// Inventory configuration.
 		Config *Config

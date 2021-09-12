@@ -5,6 +5,7 @@ import (
 )
 
 type (
+	// Inventory implements a dynamic inventory for Ansible.
 	Inventory struct {
 		// Inventory configuration.
 		Config *Config
@@ -16,6 +17,7 @@ type (
 		Tree *Node
 	}
 
+	// Config represents the main inventory configuration.
 	Config struct {
 		// A logger for the inventory.
 		// By default, the global zap.SugaredLogger is used.
@@ -129,7 +131,7 @@ type (
 		} `mapstructure:"txt"`
 	}
 
-	// Inventory datasource
+	// Datasource provides an interface for all supported datasources.
 	Datasource interface {
 		// GetAllRecords returns all host records.
 		GetAllRecords() ([]*DatasourceRecord, error)
@@ -139,7 +141,7 @@ type (
 		Close()
 	}
 
-	// Inventory datasource record.
+	// DatasourceRecord represents a single host record returned by a datasource.
 	DatasourceRecord struct {
 		// Host name.
 		Hostname string
@@ -147,7 +149,7 @@ type (
 		Attributes string
 	}
 
-	// Inventory logger.
+	// Logger provides a logging interface for the inventory and its datasources.
 	Logger interface {
 		Info(args ...interface{})
 		Infof(template string, args ...interface{})
@@ -210,11 +212,11 @@ type (
 func (a *HostAttributes) MarshalJSON() ([]byte, error) {
 	attrs := make(map[string]string)
 
-	attrs[ADIHostAttributeNames["OS"]] = a.OS
-	attrs[ADIHostAttributeNames["ENV"]] = a.Env
-	attrs[ADIHostAttributeNames["ROLE"]] = a.Role
-	attrs[ADIHostAttributeNames["SRV"]] = a.Srv
-	attrs[ADIHostAttributeNames["VARS"]] = a.Vars
+	attrs[adiHostAttributeNames["OS"]] = a.OS
+	attrs[adiHostAttributeNames["ENV"]] = a.Env
+	attrs[adiHostAttributeNames["ROLE"]] = a.Role
+	attrs[adiHostAttributeNames["SRV"]] = a.Srv
+	attrs[adiHostAttributeNames["VARS"]] = a.Vars
 
 	return json.Marshal(attrs)
 }
@@ -223,11 +225,11 @@ func (a *HostAttributes) MarshalJSON() ([]byte, error) {
 func (a *HostAttributes) MarshalYAML() (interface{}, error) {
 	attrs := make(map[string]string)
 
-	attrs[ADIHostAttributeNames["OS"]] = a.OS
-	attrs[ADIHostAttributeNames["ENV"]] = a.Env
-	attrs[ADIHostAttributeNames["ROLE"]] = a.Role
-	attrs[ADIHostAttributeNames["SRV"]] = a.Srv
-	attrs[ADIHostAttributeNames["VARS"]] = a.Vars
+	attrs[adiHostAttributeNames["OS"]] = a.OS
+	attrs[adiHostAttributeNames["ENV"]] = a.Env
+	attrs[adiHostAttributeNames["ROLE"]] = a.Role
+	attrs[adiHostAttributeNames["SRV"]] = a.Srv
+	attrs[adiHostAttributeNames["VARS"]] = a.Vars
 
 	return attrs, nil
 }

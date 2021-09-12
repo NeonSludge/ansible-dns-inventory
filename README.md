@@ -2,29 +2,22 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/NeonSludge/ansible-dns-inventory)](https://goreportcard.com/report/github.com/NeonSludge/ansible-dns-inventory)
 
-A [dynamic inventory](https://docs.ansible.com/ansible/latest/user_guide/intro_dynamic_inventory.html) script for Ansible that uses DNS to discover hosts and groups and represents the resulting inventory as a tree.
-
-This utility uses a DNS server as a single-source-of-truth for your Ansible inventories. It extracts host attributes from corresponding DNS TXT records and builds a tree out of them that then gets exported into a JSON representation, ready for use by Ansible. A tree is often a very convenient way of organizing your inventory because it allows for a predictable variable merging/flattening order.
-
-This dynamic inventory started as a Bash script and has been used for a couple of years in environments ranging from tens to hundreds of hosts. I am publishing this Golang version in hopes that someone else finds it useful.
-
-For this to work you must ensure that:
-
-1. Your DNS server allows zone transfers (AXFR) to the host that is going to be running `ansible-dns-inventory` (Ansible control node) OR you're using the no-transfer mode (the `dns.notransfer.enabled` parameter in the configuration).
-2. Every host that should be managed by Ansible has one or more properly formatted DNS TXT records OR there is a set of TXT records belonging to a special host (the `dns.notransfer.host` parameter) AND you're using the no-transfer mode.
-3. You have created a configuration file for `ansible-dns-inventory`.
+A tool that processes sets of host attributes stored as DNS TXT records or key/value pairs in etcd to create a tree-like inventory of your infrastructure that can be immediately consumed by Ansible or exported in several helpful formats.
 
 ## Features
 
-- Two modes of operation: zone transfers and regular DNS queries.
-- TSIG support for zone tranfers.
+- DNS and etcd are available as data sources.
+- **(DNS data source)** two modes of operation: zone transfers and regular DNS queries.
+- **(DNS data source)** TSIG support for zone tranfers.
+- **(Etcd data source)** authentication and mTLS support.
 - Unlimited number and length of inventory tree branches.
 - Predictable and stable inventory structure.
 - Multiple records per host supported.
-- Optional custom Ansible variables in DNS records (see caveats in the 'Host variables' section).
+- Optional custom Ansible variables in host records (see caveats in the 'Host variables' section).
 
 ## Usage
-```
+
+```txt
 Usage of dns-inventory:
   -attrs
         export host attributes
@@ -44,55 +37,29 @@ Usage of dns-inventory:
         display ansible-dns-inventory version and build info
 ```
 
-## TXT record format
-There are two ways to add a host to the inventory:
+## Prerequisites
 
-1. Create a DNS TXT record for this host and format it properly, specifying host attributes as a set of key/value pairs. One host can have an unlimited number of TXT records: all of them will be parsed by `ansible-dns-inventory`.
-2. Enable the no-transfer mode, add a TXT record for the special host (`ansible-dns-inventory.your.domain` by default) and format it properly, referencing the host you want to add to your inventory and specifying its attributes as a set of key/value pairs. Again, one host can have any number of records here.
+### DNS data source
 
-Here is an example of using both of these ways:
+1. Allow zone transfers (AXFR) from your DNS server to the host that is going to be running the `dns-inventory` utility and setup TSIG parameters in the configuration file (if needed) or use the no-transfer mode (the `dns.notransfer.enabled` parameter).
+2. Add one or more properly formatted DNS TXT records either for the managed hosts themselves or for a special host (the `dns.notransfer.host` parameter) if you're using the no-transfer mode.
+3. Set other relevant parameters in the configuration file or via environment variables.
 
-### Example of a TXT record (regular mode)
-| Host                  | TXT record                                                                       |
-| --------------------- | -------------------------------------------------------------------------------- |
-| `app01.infra.local`   | `OS=linux;ENV=dev;ROLE=app;SRV=tomcat_backend_auth;VARS=key1=value1,key2=value2` |
+### Etcd data source
 
-### Example of a TXT record (no-transfer mode)
-| Host                                | TXT record                                                                                         |
-| ----------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `ansible-dns-inventory.infra.local` | `app01.infra.local:OS=linux;ENV=dev;ROLE=app;SRV=tomcat_backend_auth;VARS=key1=value1,key2=value2` |
+1. Add one or more properly formatted key/value pairs for all managed hosts.
+2. Set other relevant parameters in the configuration file or via environment variables.
 
-The separator between the hostname and the attribute string in the no-transfer mode is customizable (the `dns.notransfer.separator` parameter).
-
-### Host attributes (default key names)
-| Key  | Description                                                                                                                                                 |
-| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| OS   | Operating system identifier. Required.                                                                                                                      |
-| ENV  | Environment identifier. Required.                                                                                                                           |
-| ROLE | Host role identifier(s). Required. Can be a comma-delimited list.                                                                                           |
-| SRV  | Host service identifier(s). This will be split further using the `txt.keys.separator` to produce a hierarchy of groups. Required. Can also be a comma-delimited list. |
-| VARS | Optional host variables.                                                                                                                                    |
-
-Key names and separators are customizable via `ansible-dns-inventory`'s config file.
-Key values are validated and can only contain numbers and letters of the Latin alphabet, except for the service identifier(s) which can also contain the `txt.keys.separator` symbol.
-
-### Host variables
-`ansible-dns-inventory` supports passing additional host variables to Ansible via the `VARS` attribute. This feature is disabled by default, you can enable it by setting the `txt.vars.enabled` parameter to `true`.
-This is meant to be used in cases where storing some Ansible host variables directly in TXT records could be a good idea. For example, you might want to put variables like `ansible_user` there.
-
-WARNING: This feature adds an additional DNS request for every host in your inventory so be careful when using it with large inventories.
-The no-transfer mode may particularly suffer a perfomance hit if host variables are used.
-
-## Config file
+## Configuration file
 
 `ansible-dns-inventory` can use a YAML configuration file, a set of environment variables or both as its configuration source.
 
 It will try to load the file specified in the `ADI_CONFIG_FILE` environment variable if it is defined.
 If this variable is not defined or has an empty value, it looks for an `ansible-dns-inventory.yaml` file inside these directories (in this specific order):
 
-* `.` (current working directory)
-* `~/.ansible/`
-* `/etc/ansible/`
+1. current working directory
+2. `<home directory>/.ansible/`
+3. `/etc/ansible/`
 
 `ansible-dns-inventory` will panic if a configuration file was found but there was a problem reading it.
 If no configuration file was found, it will fall back to using default values and environment variables.
@@ -101,13 +68,22 @@ Every parameter can also be overriden by a corresponding environment variable.
 There is a [template](config/ansible-dns-inventory.yaml) in this repository that lists descriptions, environment variable names and default values for all available parameters.
 
 ### Example of a config file
-```
+
+```yaml
+datasource: dns
 dns:
   server: "10.100.100.1:53"
   timeout: "120s"
   zones:
     - server.local.
     - infra.local.
+etcd:
+  endpoints:
+    - 10.100.100.1:2379
+    - 10.100.100.2:2379
+    - 10.100.100.3:2379
+  tls:
+    insecure: true
 txt:
   kv:
     separator: "|"
@@ -116,11 +92,79 @@ txt:
 
 ```
 
+## Host records
+
+### DNS data source
+
+There are two ways to add a host to the inventory:
+
+1. Create a DNS TXT record for this host and format it properly, specifying host attributes as a set of key/value pairs. One host can have an unlimited number of TXT records: all of them will be parsed by `ansible-dns-inventory`.
+2. Enable the no-transfer mode, add a TXT record for the special host (`ansible-dns-inventory.your.domain` by default) and format it properly, referencing the host you want to add to your inventory and specifying its attributes as a set of key/value pairs. Again, one host can have any number of records here.
+
+Here is an example of using both of these ways:
+
+#### Example of a DNS TXT record (regular mode)
+
+| Host                  | TXT record                                                                       |
+| --------------------- | -------------------------------------------------------------------------------- |
+| `app01.infra.local`   | `OS=linux;ENV=dev;ROLE=app;SRV=tomcat_backend_auth;VARS=key1=value1,key2=value2` |
+
+#### Example of a DNS TXT record (no-transfer mode)
+
+| Host                                | TXT record                                                                                         |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `ansible-dns-inventory.infra.local` | `app01.infra.local:OS=linux;ENV=dev;ROLE=app;SRV=tomcat_backend_auth;VARS=key1=value1,key2=value2` |
+
+The separator between the hostname and the attribute string in the no-transfer mode is customizable (the `dns.notransfer.separator` parameter).
+
+### Etcd data source
+
+There is only one way of adding host records to an etcd data source.
+You create a key/value pair where the value is formatted the same way as with the DNS data source and the key name must be constructed by strictly following this scheme:
+
+`<prefix>/<zone>/<hostname>/<index>`
+
+...where:
+
+- `<prefix>` is the same as the `etcd.prefix` configuration parameter value.
+- `<zone>` is one of the zones listed in the `parameter`
+- `<hostname>` is the FQDN of a host
+- `<index>` starts at 0 and is incremented for each additional record belonging to the same host.
+
+#### Example of a key/value pair
+
+| Key                                                  | Value                                                                            |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `ANSIBLE_INVENTORY/infra.local./app01.infra.local/0` | `OS=linux;ENV=dev;ROLE=app;SRV=tomcat_backend_auth;VARS=key1=value1,key2=value2` |
+
+
+
+### Host attributes (default key names)
+
+| Key  | Description                                                                                                                                                 |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| OS   | Operating system identifier. Required.                                                                                                                      |
+| ENV  | Environment identifier. Required.                                                                                                                           |
+| ROLE | Host role identifier(s). Required. Can be a comma-delimited list.                                                                                           |
+| SRV  | Host service identifier(s). This will be split further using the `txt.keys.separator` to produce a hierarchy of groups. Required. Can also be a comma-delimited list. |
+| VARS | Optional host variables.                                                                                                                                    |
+
+All key names and separators are customizable via `ansible-dns-inventory`'s config file.
+Key values are validated and can only contain numbers and letters of the Latin alphabet, except for the service identifier(s) which can also contain the `txt.keys.separator` symbol.
+
+### Host variables
+
+`ansible-dns-inventory` supports passing additional host variables to Ansible via the `VARS` attribute. This feature is disabled by default, you can enable it by setting the `txt.vars.enabled` parameter to `true`.
+This is meant to be used in cases where storing some Ansible host variables directly in TXT records could be a good idea. For example, you might want to put variables like `ansible_user` there.
+
+WARNING: This feature adds an additional DNS request for every host in your inventory so be careful when using it with large inventories.
+The no-transfer mode may particularly suffer a perfomance hit if host variables are used.
+
 ## Inventory structure
 
 In general, if you have a single TXT record for a `HOST` and this record has all 4 required attributes set then this `HOST` will end up in this hierarchy of groups:
 
-```
+```txt
 @all:
   |--@all_<ROLE>:
   |  |--@all_<ROLE>_<SRV[1]>:
@@ -149,7 +193,7 @@ Let's say you have these records in your DNS server:
 
 These will produce the following Ansible inventory tree:
 
-```
+```txt
 @all:
   |--@all_app:
   |  |--@all_app_tomcat:
@@ -196,8 +240,9 @@ The default format is always `yaml`.
 
 The `-attrs` mode exports a list of dictionaries of attributes for each host. If a host has multiple TXT records or multiple elements in a comma-separated list in the `ROLE` or `SRV` attribute, the attribute list for this host in the `-attrs` output will contain multiple dictionaries: one for each detected attribute "set".
 
-### Examples:
-```
+### Examples
+
+```txt
 $ dns-inventory -hosts -format yaml-list
 ...
 "app01.infra.local": ["all", "all_app", "all_app_tomcat", "all_host", ...]

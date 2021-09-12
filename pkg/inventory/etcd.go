@@ -15,7 +15,7 @@ import (
 )
 
 type (
-	// An etcd datasource implementation.
+	// EtcdDatasource implemets an etcd datasource.
 	EtcdDatasource struct {
 		// Inventory configuration.
 		Config *Config
@@ -26,7 +26,7 @@ type (
 	}
 )
 
-// Process several k/v pairs.
+// processKVs processes several k/v pairs.
 func (e *EtcdDatasource) processKVs(kvs []*mvccpb.KeyValue) []*DatasourceRecord {
 	log := e.Logger
 	var name string
