@@ -140,7 +140,7 @@ func makeEtcdTLSConfig(cfg *Config) (*tls.Config, error) {
 	var err error
 
 	if len(cfg.Etcd.TLS.CA.PEM) > 0 {
-		tlsCAPool, err = tlsCAPoolFromPEM(cfg.Etcd.TLS.CA.Path)
+		tlsCAPool, err = tlsCAPoolFromPEM(cfg.Etcd.TLS.CA.PEM)
 	} else if len(cfg.Etcd.TLS.CA.Path) > 0 {
 		tlsCAPool, err = tlsCAPoolFromFile(cfg.Etcd.TLS.CA.Path)
 	}
