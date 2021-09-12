@@ -126,8 +126,8 @@ You create a key/value pair where the value is formatted the same way as with th
 
 ...where:
 
-- `<prefix>` is the same as the `etcd.prefix` configuration parameter value.
-- `<zone>` is one of the zones listed in the `parameter`
+- `<prefix>` is the same as the `etcd.prefix` configuration parameter value
+- `<zone>` is one of the zones listed in the `etcd.zones` parameter
 - `<hostname>` is the FQDN of a host
 - `<index>` starts at 0 and is incremented for each additional record belonging to the same host.
 
