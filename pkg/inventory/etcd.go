@@ -103,7 +103,7 @@ func (e *EtcdDatasource) GetHostRecords(host string) ([]*DatasourceRecord, error
 
 	// Determine which zone we are working with.
 	for _, z := range cfg.Etcd.Zones {
-		if strings.HasSuffix(host, z) {
+		if strings.HasSuffix(strings.Trim(host, "."), strings.Trim(z, ".")) {
 			zone = z
 			break
 		}

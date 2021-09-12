@@ -155,7 +155,7 @@ func (d *DNSDatasource) GetHostRecords(host string) ([]*DatasourceRecord, error)
 
 		// Determine which zone we are working with.
 		for _, z := range cfg.DNS.Zones {
-			if strings.HasSuffix(dns.Fqdn(host), dns.Fqdn(z)) {
+			if strings.HasSuffix(strings.Trim(host, "."), strings.Trim(z, ".")) {
 				zone = z
 				break
 			}
