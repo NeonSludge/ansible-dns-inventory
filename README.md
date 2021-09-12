@@ -6,9 +6,10 @@ A tool that processes sets of host attributes stored as DNS TXT records or key/v
 
 ## Features
 
+- Files and environment variables are supported as configuration sources. 
 - DNS and etcd are available as data sources.
 - **(DNS data source)** two modes of operation: zone transfers and regular DNS queries.
-- **(DNS data source)** TSIG support for zone tranfers.
+- **(DNS data source)** TSIG support for zone transfers.
 - **(Etcd data source)** authentication and mTLS support.
 - Unlimited number and length of inventory tree branches.
 - Predictable and stable inventory structure.
