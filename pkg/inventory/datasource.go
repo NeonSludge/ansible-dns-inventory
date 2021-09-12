@@ -4,7 +4,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// New creates a datasource base on the configuration.
+// NewDatasource creates a datasource based on the inventory configuration.
 func NewDatasource(cfg *Config) (Datasource, error) {
 	// Select datasource implementation.
 	switch cfg.Datasource {

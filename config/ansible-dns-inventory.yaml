@@ -39,6 +39,34 @@ etcd:
   # Etcd host zone list. Environment variable: ADI_DNS_ZONES (space-separated list)
   zones:
     - server.local.
+  # Etcd authentication configuration.
+  auth:
+    # Environment variable: ADI_ETCD_AUTH_USERNAME
+    username: ""
+    # Environment variable: ADI_ETCD_AUTH_PASSWORD
+    password: ""
+  # Etcd TLS configuration.
+  tls:
+    # Skip verification of the etcd server's certificate chain and host name. Environment variable: ADI_ETCD_TLS_INSECURE
+    insecure: false
+    # Trusted CA bundle. If both 'pem' and 'path' are set, 'pem' takes priority.
+    ca:
+      # Path to a file containing a PEM-formatted trusted CA bundle. Environment variable: ADI_ETCD_TLS_CA_PATH
+      path: ""
+      # PEM-formatted trusted CA bundle. Environment variable: ADI_ETCD_TLS_CA_PEM
+      pem: ""
+    # User certificate.
+    certificate:
+      # Path to a file containing a PEM-formatted user certificate. Environment variable: ADI_ETCD_TLS_CERTIFICATE_PATH
+      path: ""
+      # PEM-formatted user certificate. Environment variable: ADI_ETCD_TLS_CERTIFICATE_PEM
+      pem: ""
+    # User private key. If both 'pem' and 'path' are set, 'pem' takes priority.
+    key:
+      # Path to a file containing a PEM-formatted private key. Environment variable: ADI_ETCD_TLS_KEY_PATH
+      path: ""
+      # PEM-formatted private key. Environment variable: ADI_ETCD_TLS_KEY_PEM
+      pem: ""
 # Host record parsing configuration.
 txt:
   # Key/value pair parsing configuration.

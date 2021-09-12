@@ -63,6 +63,33 @@ type (
 			Prefix string `mapstructure:"prefix"`
 			// Etcd host zone list.
 			Zones []string `mapstructure:"zones"`
+			// Etcd authentication configuration.
+			Auth struct {
+				// Username for authentication.
+				Username string `mapstructure:"username"`
+				// Password for authentication.
+				Password string `mapstructure:"password"`
+			} `mapstructure:"auth"`
+			// Etcd TLS configuration.
+			TLS struct {
+				// Skip verification of the etcd server's certificate chain and host name.
+				Insecure bool `mapstructure:"insecure"`
+				// Trusted CA bundle.
+				CA struct {
+					Path string `mapstructure:"path"`
+					PEM  string `mapstructure:"pem"`
+				} `mapstructure:"ca"`
+				// User certificate.
+				Certificate struct {
+					Path string `mapstructure:"path"`
+					PEM  string `mapstructure:"pem"`
+				} `mapstructure:"certificate"`
+				// User private key.
+				Key struct {
+					Path string `mapstructure:"path"`
+					PEM  string `mapstructure:"pem"`
+				} `mapstructure:"key"`
+			} `mapstructure:"tls"`
 		} `mapstructure:"etcd"`
 		// Host records parsing configuration.
 		Txt struct {

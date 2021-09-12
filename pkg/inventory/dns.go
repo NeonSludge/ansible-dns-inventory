@@ -191,10 +191,10 @@ func (d *DNSDatasource) GetHostRecords(host string) ([]*DatasourceRecord, error)
 	return records, nil
 }
 
-// Close datasource and perform housekeeping.
+// Close shuts down the datasource and performs other housekeeping.
 func (d *DNSDatasource) Close() {}
 
-// Create a DNS datasource.
+// NewDNSDatasource creates a DNS datasource.
 func NewDNSDatasource(cfg *Config) (*DNSDatasource, error) {
 	t, err := time.ParseDuration(cfg.DNS.Timeout)
 	if err != nil {

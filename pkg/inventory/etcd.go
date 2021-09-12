@@ -2,6 +2,8 @@ package inventory
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"strconv"
 	"strings"
 	"time"
@@ -127,21 +129,48 @@ func (e *EtcdDatasource) GetHostRecords(host string) ([]*DatasourceRecord, error
 	return e.processKVs(kvs), nil
 }
 
-// Close datasource and perform housekeeping.
+// Close shuts down the datasource and performs other housekeeping.
 func (e *EtcdDatasource) Close() {
 	e.Client.Close()
 }
 
-// Create an etcd datasource.
+// NewEtcdDatasource creates an etcd datasource.
 func NewEtcdDatasource(cfg *Config) (*EtcdDatasource, error) {
+	var tlsCAPool *x509.CertPool
+	var tlsKeyPair tls.Certificate
+	var tlsErr error
+
 	t, err := time.ParseDuration(cfg.Etcd.Timeout)
 	if err != nil {
 		return nil, errors.Wrap(err, "etcd datasource initialization failure")
 	}
 
+	if len(cfg.Etcd.TLS.CA.PEM) > 0 {
+		tlsCAPool, tlsErr = tlsCAPoolFromPEM(cfg.Etcd.TLS.CA.Path)
+	} else if len(cfg.Etcd.TLS.CA.Path) > 0 {
+		tlsCAPool, tlsErr = tlsCAPoolFromFile(cfg.Etcd.TLS.CA.Path)
+	}
+
+	if len(cfg.Etcd.TLS.Certificate.PEM) > 0 && len(cfg.Etcd.TLS.Key.PEM) > 0 {
+		tlsKeyPair, tlsErr = tlsKeyPairFromPEM(cfg.Etcd.TLS.Certificate.PEM, cfg.Etcd.TLS.Key.PEM)
+	} else if len(cfg.Etcd.TLS.Certificate.Path) > 0 && len(cfg.Etcd.TLS.Key.Path) > 0 {
+		tlsKeyPair, tlsErr = tlsKeyPairFromFile(cfg.Etcd.TLS.Certificate.Path, cfg.Etcd.TLS.Key.Path)
+	}
+
+	if tlsErr != nil {
+		return nil, errors.Wrap(tlsErr, "etcd datasource TLS initialization failure")
+	}
+
 	c, err := etcdv3.New(etcdv3.Config{
 		Endpoints:   cfg.Etcd.Endpoints,
 		DialTimeout: t,
+		Username:    cfg.Etcd.Auth.Username,
+		Password:    cfg.Etcd.Auth.Password,
+		TLS: &tls.Config{
+			InsecureSkipVerify: cfg.Etcd.TLS.Insecure,
+			RootCAs:            tlsCAPool,
+			Certificates:       []tls.Certificate{tlsKeyPair},
+		},
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "etcd datasource initialization failure")
