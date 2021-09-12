@@ -74,6 +74,7 @@ func Load() (*inventory.Config, error) {
 	v.SetDefault("etcd.timeout", "30s")
 	v.SetDefault("etcd.prefix", "ANSIBLE_INVENTORY")
 	v.SetDefault("etcd.zones", []string{"server.local."})
+	v.SetDefault("etcd.tls.enabled", true)
 	v.SetDefault("etcd.tls.insecure", false)
 
 	v.SetDefault("txt.kv.separator", ";")

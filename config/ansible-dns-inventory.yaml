@@ -47,6 +47,8 @@ etcd:
     password: ""
   # Etcd TLS configuration.
   tls:
+    # Enable TLS
+    enabled: true
     # Skip verification of the etcd server's certificate chain and host name. Environment variable: ADI_ETCD_TLS_INSECURE
     insecure: false
     # Trusted CA bundle. If both 'pem' and 'path' are set, 'pem' takes priority.

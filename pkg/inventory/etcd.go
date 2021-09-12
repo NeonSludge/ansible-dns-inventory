@@ -134,16 +134,10 @@ func (e *EtcdDatasource) Close() {
 	e.Client.Close()
 }
 
-// NewEtcdDatasource creates an etcd datasource.
-func NewEtcdDatasource(cfg *Config) (*EtcdDatasource, error) {
+func makeEtcdTLSConfig(cfg *Config) (*tls.Config, error) {
 	var tlsCAPool *x509.CertPool
 	var tlsKeyPair tls.Certificate
 	var tlsErr error
-
-	t, err := time.ParseDuration(cfg.Etcd.Timeout)
-	if err != nil {
-		return nil, errors.Wrap(err, "etcd datasource initialization failure")
-	}
 
 	if len(cfg.Etcd.TLS.CA.PEM) > 0 {
 		tlsCAPool, tlsErr = tlsCAPoolFromPEM(cfg.Etcd.TLS.CA.Path)
@@ -158,33 +152,55 @@ func NewEtcdDatasource(cfg *Config) (*EtcdDatasource, error) {
 	}
 
 	if tlsErr != nil {
-		return nil, errors.Wrap(tlsErr, "etcd datasource TLS initialization failure")
+		return nil, errors.Wrap(tlsErr, "TLS initialization failure")
 	}
 
-	c, err := etcdv3.New(etcdv3.Config{
+	return &tls.Config{
+		InsecureSkipVerify: cfg.Etcd.TLS.Insecure,
+		RootCAs:            tlsCAPool,
+		Certificates:       []tls.Certificate{tlsKeyPair},
+	}, nil
+}
+
+// NewEtcdDatasource creates an etcd datasource.
+func NewEtcdDatasource(cfg *Config) (*EtcdDatasource, error) {
+	t, err := time.ParseDuration(cfg.Etcd.Timeout)
+	if err != nil {
+		return nil, errors.Wrap(err, "etcd datasource initialization failure")
+	}
+
+	// Etcd client configuration
+	clientCfg := etcdv3.Config{
 		Endpoints:   cfg.Etcd.Endpoints,
 		DialTimeout: t,
 		Username:    cfg.Etcd.Auth.Username,
 		Password:    cfg.Etcd.Auth.Password,
-		TLS: &tls.Config{
-			InsecureSkipVerify: cfg.Etcd.TLS.Insecure,
-			RootCAs:            tlsCAPool,
-			Certificates:       []tls.Certificate{tlsKeyPair},
-		},
-	})
+	}
+
+	// Setup TLS.
+	if cfg.Etcd.TLS.Enabled {
+		tlsCfg, err := makeEtcdTLSConfig(cfg)
+		if err != nil {
+			return nil, errors.Wrap(err, "etcd datasource initialization failure")
+		}
+		clientCfg.TLS = tlsCfg
+	}
+
+	// Create etcd client.
+	client, err := etcdv3.New(clientCfg)
 	if err != nil {
 		return nil, errors.Wrap(err, "etcd datasource initialization failure")
 	}
 
 	// Set etcd namespace.
 	ns := cfg.Etcd.Prefix
-	c.KV = etcdns.NewKV(c.KV, ns+"/")
-	c.Watcher = etcdns.NewWatcher(c.Watcher, ns+"/")
-	c.Lease = etcdns.NewLease(c.Lease, ns+"/")
+	client.KV = etcdns.NewKV(client.KV, ns+"/")
+	client.Watcher = etcdns.NewWatcher(client.Watcher, ns+"/")
+	client.Lease = etcdns.NewLease(client.Lease, ns+"/")
 
 	return &EtcdDatasource{
 		Config: cfg,
 		Logger: cfg.Logger,
-		Client: c,
+		Client: client,
 	}, nil
 }

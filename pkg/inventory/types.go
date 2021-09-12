@@ -72,6 +72,8 @@ type (
 			} `mapstructure:"auth"`
 			// Etcd TLS configuration.
 			TLS struct {
+				// Enable TLS.
+				Enabled bool `mapstructure:"enabled"`
 				// Skip verification of the etcd server's certificate chain and host name.
 				Insecure bool `mapstructure:"insecure"`
 				// Trusted CA bundle.
