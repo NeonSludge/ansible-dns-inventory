@@ -21,10 +21,6 @@ type (
 		Logger Logger
 		// Etcd client.
 		Client *etcdv3.Client
-		// Etcd request context.
-		Context context.Context
-		// Etcd request context cancel function.
-		Cancel context.CancelFunc
 	}
 )
 
@@ -69,7 +65,16 @@ func (e *EtcdDatasource) processKVs(kvs []*mvccpb.KeyValue) []*DatasourceRecord 
 
 // getPrefix acquires all key/value records for a specific prefix.
 func (e *EtcdDatasource) getPrefix(prefix string) ([]*mvccpb.KeyValue, error) {
-	resp, err := e.Client.Get(e.Context, prefix, etcdv3.WithPrefix())
+	cfg := e.Config
+
+	t, err := time.ParseDuration(cfg.Etcd.Timeout)
+	if err != nil {
+		return nil, errors.Wrap(err, "etcd request failure")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), t)
+	resp, err := e.Client.Get(ctx, prefix, etcdv3.WithPrefix())
+	cancel()
 	if err != nil {
 		return nil, errors.Wrap(err, "etcd request failure")
 	}
@@ -124,7 +129,6 @@ func (e *EtcdDatasource) GetHostRecords(host string) ([]*DatasourceRecord, error
 
 // Close datasource and perform housekeeping.
 func (e *EtcdDatasource) Close() {
-	e.Cancel()
 	e.Client.Close()
 }
 
@@ -143,8 +147,6 @@ func NewEtcdDatasource(cfg *Config) (*EtcdDatasource, error) {
 		return nil, errors.Wrap(err, "etcd datasource initialization failure")
 	}
 
-	ctx, cnc := context.WithTimeout(context.Background(), t)
-
 	// Set etcd namespace.
 	ns := cfg.Etcd.Prefix
 	c.KV = etcdns.NewKV(c.KV, ns+"/")
@@ -152,10 +154,8 @@ func NewEtcdDatasource(cfg *Config) (*EtcdDatasource, error) {
 	c.Lease = etcdns.NewLease(c.Lease, ns+"/")
 
 	return &EtcdDatasource{
-		Config:  cfg,
-		Logger:  cfg.Logger,
-		Client:  c,
-		Context: ctx,
-		Cancel:  cnc,
+		Config: cfg,
+		Logger: cfg.Logger,
+		Client: c,
 	}, nil
 }
