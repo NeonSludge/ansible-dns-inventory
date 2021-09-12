@@ -4,10 +4,12 @@ import (
 	"context"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"go.etcd.io/etcd/api/v3/mvccpb"
 	etcdv3 "go.etcd.io/etcd/client/v3"
+	etcdns "go.etcd.io/etcd/client/v3/namespace"
 )
 
 type (
@@ -124,4 +126,36 @@ func (e *EtcdDatasource) GetHostRecords(host string) ([]*DatasourceRecord, error
 func (e *EtcdDatasource) Close() {
 	e.Cancel()
 	e.Client.Close()
+}
+
+// Create an etcd datasource.
+func NewEtcdDatasource(cfg *Config) (*EtcdDatasource, error) {
+	t, err := time.ParseDuration(cfg.Etcd.Timeout)
+	if err != nil {
+		return nil, errors.Wrap(err, "etcd datasource initialization failure")
+	}
+
+	c, err := etcdv3.New(etcdv3.Config{
+		Endpoints:   cfg.Etcd.Endpoints,
+		DialTimeout: t,
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "etcd datasource initialization failure")
+	}
+
+	ctx, cnc := context.WithTimeout(context.Background(), t)
+
+	// Set etcd namespace.
+	ns := cfg.Etcd.Prefix
+	c.KV = etcdns.NewKV(c.KV, ns+"/")
+	c.Watcher = etcdns.NewWatcher(c.Watcher, ns+"/")
+	c.Lease = etcdns.NewLease(c.Lease, ns+"/")
+
+	return &EtcdDatasource{
+		Client:  c,
+		Context: ctx,
+		Cancel:  cnc,
+		Config:  cfg,
+		Logger:  cfg.Logger,
+	}, nil
 }

@@ -204,7 +204,7 @@ func New(cfg *Config) (*Inventory, error) {
 	i := &Inventory{
 		Config:     cfg,
 		Datasource: ds,
-		Tree:       InitTree(),
+		Tree:       NewTree(),
 	}
 
 	return i, nil

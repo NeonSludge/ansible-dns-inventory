@@ -239,7 +239,7 @@ func (n *Node) ExportGroups(groups map[string][]string) {
 	}
 }
 
-// InitTree initializes an empty inventory tree
-func InitTree() *Node {
+// NewTree initializes an empty inventory tree
+func NewTree() *Node {
 	return &Node{Name: ansibleRootGroup, Parent: &Node{}, Children: make([]*Node, 0), Hosts: make(map[string]bool)}
 }

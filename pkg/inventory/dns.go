@@ -193,3 +193,24 @@ func (d *DNSDatasource) GetHostRecords(host string) ([]*DatasourceRecord, error)
 
 // Close datasource and perform housekeeping.
 func (d *DNSDatasource) Close() {}
+
+// Create a DNS datasource.
+func NewDNSDatasource(cfg *Config) (*DNSDatasource, error) {
+	t, err := time.ParseDuration(cfg.DNS.Timeout)
+	if err != nil {
+		return nil, errors.Wrap(err, "dns datasource initialization failure")
+	}
+
+	return &DNSDatasource{
+		Client: &dns.Client{
+			Timeout: t,
+		},
+		Transfer: &dns.Transfer{
+			DialTimeout:  t,
+			ReadTimeout:  t,
+			WriteTimeout: t,
+		},
+		Config: cfg,
+		Logger: cfg.Logger,
+	}, nil
+}
