@@ -203,6 +203,7 @@ func New(cfg *Config) (*Inventory, error) {
 
 	i := &Inventory{
 		Config:     cfg,
+		Logger:     cfg.Logger,
 		Datasource: ds,
 		Tree:       NewTree(),
 	}

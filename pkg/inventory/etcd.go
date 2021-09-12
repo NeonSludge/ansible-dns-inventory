@@ -15,16 +15,16 @@ import (
 type (
 	// An etcd datasource implementation.
 	EtcdDatasource struct {
+		// Inventory configuration.
+		Config *Config
+		// Inventory logger.
+		Logger Logger
 		// Etcd client.
 		Client *etcdv3.Client
 		// Etcd request context.
 		Context context.Context
 		// Etcd request context cancel function.
 		Cancel context.CancelFunc
-		// Inventory configuration.
-		Config *Config
-		// Inventory logger.
-		Logger Logger
 	}
 )
 
@@ -152,10 +152,10 @@ func NewEtcdDatasource(cfg *Config) (*EtcdDatasource, error) {
 	c.Lease = etcdns.NewLease(c.Lease, ns+"/")
 
 	return &EtcdDatasource{
+		Config:  cfg,
+		Logger:  cfg.Logger,
 		Client:  c,
 		Context: ctx,
 		Cancel:  cnc,
-		Config:  cfg,
-		Logger:  cfg.Logger,
 	}, nil
 }

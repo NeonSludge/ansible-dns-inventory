@@ -18,14 +18,14 @@ const (
 type (
 	// A DNS datasource implementation.
 	DNSDatasource struct {
-		// DNS client.
-		Client *dns.Client
-		// DNS zone transfer parameters.
-		Transfer *dns.Transfer
 		// Inventory configuration.
 		Config *Config
 		// Inventory logger.
 		Logger Logger
+		// DNS client.
+		Client *dns.Client
+		// DNS zone transfer parameters.
+		Transfer *dns.Transfer
 	}
 )
 
@@ -202,6 +202,8 @@ func NewDNSDatasource(cfg *Config) (*DNSDatasource, error) {
 	}
 
 	return &DNSDatasource{
+		Config: cfg,
+		Logger: cfg.Logger,
 		Client: &dns.Client{
 			Timeout: t,
 		},
@@ -210,7 +212,5 @@ func NewDNSDatasource(cfg *Config) (*DNSDatasource, error) {
 			ReadTimeout:  t,
 			WriteTimeout: t,
 		},
-		Config: cfg,
-		Logger: cfg.Logger,
 	}, nil
 }
