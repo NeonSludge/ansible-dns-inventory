@@ -47,7 +47,7 @@ etcd:
     password: ""
   # Etcd TLS configuration.
   tls:
-    # Enable TLS
+    # Enable TLS Environment variable: ADI_ETCD_TLS_ENABLED
     enabled: true
     # Skip verification of the etcd server's certificate chain and host name. Environment variable: ADI_ETCD_TLS_INSECURE
     insecure: false
