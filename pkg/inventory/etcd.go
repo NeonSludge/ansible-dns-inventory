@@ -1,4 +1,4 @@
-package datasource
+package inventory
 
 import (
 	"context"
@@ -8,13 +8,11 @@ import (
 	"github.com/pkg/errors"
 	"go.etcd.io/etcd/api/v3/mvccpb"
 	etcdv3 "go.etcd.io/etcd/client/v3"
-
-	"github.com/NeonSludge/ansible-dns-inventory/pkg/types"
 )
 
 type (
 	// An etcd datasource implementation.
-	Etcd struct {
+	EtcdDatasource struct {
 		// Etcd client.
 		Client *etcdv3.Client
 		// Etcd request context.
@@ -22,17 +20,17 @@ type (
 		// Etcd request context cancel function.
 		Cancel context.CancelFunc
 		// Inventory configuration.
-		Config *types.InventoryConfig
+		Config *Config
 		// Inventory logger.
-		Logger types.InventoryLogger
+		Logger Logger
 	}
 )
 
 // Process several k/v pairs.
-func (e *Etcd) processKVs(kvs []*mvccpb.KeyValue) []*types.InventoryDatasourceRecord {
+func (e *EtcdDatasource) processKVs(kvs []*mvccpb.KeyValue) []*DatasourceRecord {
 	log := e.Logger
 	var name string
-	records := make([]*types.InventoryDatasourceRecord, 0)
+	records := make([]*DatasourceRecord, 0)
 
 	// Host attribute sets
 	sets := make(map[int]string)
@@ -58,7 +56,7 @@ func (e *Etcd) processKVs(kvs []*mvccpb.KeyValue) []*types.InventoryDatasourceRe
 	}
 
 	for _, set := range sets {
-		records = append(records, &types.InventoryDatasourceRecord{
+		records = append(records, &DatasourceRecord{
 			Hostname:   name,
 			Attributes: set,
 		})
@@ -68,7 +66,7 @@ func (e *Etcd) processKVs(kvs []*mvccpb.KeyValue) []*types.InventoryDatasourceRe
 }
 
 // getPrefix acquires all key/value records for a specific prefix.
-func (e *Etcd) getPrefix(prefix string) ([]*mvccpb.KeyValue, error) {
+func (e *EtcdDatasource) getPrefix(prefix string) ([]*mvccpb.KeyValue, error) {
 	resp, err := e.Client.Get(e.Context, prefix, etcdv3.WithPrefix())
 	if err != nil {
 		return nil, errors.Wrap(err, "etcd request failure")
@@ -78,10 +76,10 @@ func (e *Etcd) getPrefix(prefix string) ([]*mvccpb.KeyValue, error) {
 }
 
 // GetAllRecords acquires all available host records.
-func (e *Etcd) GetAllRecords() ([]*types.InventoryDatasourceRecord, error) {
+func (e *EtcdDatasource) GetAllRecords() ([]*DatasourceRecord, error) {
 	cfg := e.Config
 	log := e.Logger
-	records := make([]*types.InventoryDatasourceRecord, 0)
+	records := make([]*DatasourceRecord, 0)
 
 	for _, zone := range cfg.Etcd.Zones {
 		kvs, err := e.getPrefix(zone)
@@ -97,7 +95,7 @@ func (e *Etcd) GetAllRecords() ([]*types.InventoryDatasourceRecord, error) {
 }
 
 // GetHostRecords acquires all available records for a specific host.
-func (e *Etcd) GetHostRecords(host string) ([]*types.InventoryDatasourceRecord, error) {
+func (e *EtcdDatasource) GetHostRecords(host string) ([]*DatasourceRecord, error) {
 	cfg := e.Config
 	var zone string
 
@@ -123,7 +121,7 @@ func (e *Etcd) GetHostRecords(host string) ([]*types.InventoryDatasourceRecord, 
 }
 
 // Close datasource and perform housekeeping.
-func (e *Etcd) Close() {
+func (e *EtcdDatasource) Close() {
 	e.Cancel()
 	e.Client.Close()
 }

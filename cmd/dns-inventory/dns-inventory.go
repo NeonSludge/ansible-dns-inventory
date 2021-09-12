@@ -9,8 +9,8 @@ import (
 	"github.com/NeonSludge/ansible-dns-inventory/internal/build"
 	"github.com/NeonSludge/ansible-dns-inventory/internal/config"
 	"github.com/NeonSludge/ansible-dns-inventory/internal/logger"
+	"github.com/NeonSludge/ansible-dns-inventory/internal/util"
 	"github.com/NeonSludge/ansible-dns-inventory/pkg/inventory"
-	"github.com/NeonSludge/ansible-dns-inventory/pkg/util"
 )
 
 func main() {
@@ -28,18 +28,17 @@ func main() {
 	versionFlag := flag.Bool("version", false, "display ansible-dns-inventory version and build info")
 	flag.Parse()
 
-	// Create a configuration object.
-	cfg, err := config.Load()
-	if err != nil {
-		fmt.Println("Fatal error: ", err)
-		os.Exit(1)
-	}
-
 	// Create a global logger.
 	log, err := logger.New("info")
 	if err != nil {
 		fmt.Println("Fatal error: ", err)
 		os.Exit(1)
+	}
+
+	// Create a configuration object.
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	// Pass the global logger to the inventory library.

@@ -1,15 +1,15 @@
-package datasource
+package inventory
 
 import "testing"
 
-func TestDNS_makeFQDN(t *testing.T) {
+func TestDNSDatasource_makeFQDN(t *testing.T) {
 	type args struct {
 		host string
 		zone string
 	}
 	tests := []struct {
 		name string
-		d    *DNS
+		d    *DNSDatasource
 		args args
 		want string
 	}{
@@ -121,7 +121,7 @@ func TestDNS_makeFQDN(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.d.makeFQDN(tt.args.host, tt.args.zone); got != tt.want {
-				t.Errorf("DNS.makeFQDN() = %v, want %v", got, tt.want)
+				t.Errorf("DNSDatasource.makeFQDN() = %v, want %v", got, tt.want)
 			}
 		})
 	}

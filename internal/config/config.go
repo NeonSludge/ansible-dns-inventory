@@ -7,7 +7,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 
-	"github.com/NeonSludge/ansible-dns-inventory/pkg/types"
+	"github.com/NeonSludge/ansible-dns-inventory/pkg/inventory"
 )
 
 // tsigAlgo processes user-supplied TSIG algorithm names.
@@ -21,7 +21,7 @@ func tsigAlgo(algo string) string {
 }
 
 // Load reads the configuration with Viper.
-func Load() (*types.InventoryConfig, error) {
+func Load() (*inventory.Config, error) {
 	v := viper.New()
 
 	// Load YAML configuration.
@@ -92,7 +92,7 @@ func Load() (*types.InventoryConfig, error) {
 	// Process user-supplied TSIG algorithm name.
 	v.Set("dns.tsig.algo", tsigAlgo(v.GetString("dns.tsig.algo")))
 
-	cfg := &types.InventoryConfig{}
+	cfg := &inventory.Config{}
 
 	if err := v.Unmarshal(cfg); err != nil {
 		return nil, errors.Wrap(err, "failed to unmarshal configuration")

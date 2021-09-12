@@ -1,4 +1,4 @@
-package datasource
+package inventory
 
 import (
 	"context"
@@ -8,13 +8,11 @@ import (
 	"github.com/pkg/errors"
 	etcdv3 "go.etcd.io/etcd/client/v3"
 	etcdns "go.etcd.io/etcd/client/v3/namespace"
-
-	"github.com/NeonSludge/ansible-dns-inventory/pkg/types"
 )
 
 // New creates a datasource base on the configuration.
-func New(cfg *types.InventoryConfig) (types.InventoryDatasource, error) {
-	var ds types.InventoryDatasource
+func NewDatasource(cfg *Config) (Datasource, error) {
+	var ds Datasource
 
 	// Select datasource implementation.
 	switch cfg.Datasource {
@@ -24,7 +22,7 @@ func New(cfg *types.InventoryConfig) (types.InventoryDatasource, error) {
 			return nil, errors.Wrap(err, "dns datasource initialization failure")
 		}
 
-		ds = &DNS{
+		ds = &DNSDatasource{
 			Client: &dns.Client{
 				Timeout: t,
 			},
@@ -58,7 +56,7 @@ func New(cfg *types.InventoryConfig) (types.InventoryDatasource, error) {
 		c.Watcher = etcdns.NewWatcher(c.Watcher, ns+"/")
 		c.Lease = etcdns.NewLease(c.Lease, ns+"/")
 
-		ds = &Etcd{
+		ds = &EtcdDatasource{
 			Client:  c,
 			Context: ctx,
 			Cancel:  cnc,

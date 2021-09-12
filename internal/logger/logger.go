@@ -5,11 +5,9 @@ import (
 
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
-
-	"github.com/NeonSludge/ansible-dns-inventory/pkg/types"
 )
 
-func New(level string) (types.InventoryLogger, error) {
+func New(level string) (*zap.SugaredLogger, error) {
 	var cfg zap.Config
 	cfgJSON := []byte(`{
 		"development": false,

@@ -1,4 +1,4 @@
-package datasource
+package inventory
 
 import (
 	"strings"
@@ -6,8 +6,6 @@ import (
 
 	"github.com/miekg/dns"
 	"github.com/pkg/errors"
-
-	"github.com/NeonSludge/ansible-dns-inventory/pkg/types"
 )
 
 const (
@@ -19,20 +17,20 @@ const (
 
 type (
 	// A DNS datasource implementation.
-	DNS struct {
+	DNSDatasource struct {
 		// DNS client.
 		Client *dns.Client
 		// DNS zone transfer parameters.
 		Transfer *dns.Transfer
 		// Inventory configuration.
-		Config *types.InventoryConfig
+		Config *Config
 		// Inventory logger.
-		Logger types.InventoryLogger
+		Logger Logger
 	}
 )
 
 // Process a single DNS resource record.
-func (d *DNS) processRecord(rr dns.RR) *types.InventoryDatasourceRecord {
+func (d *DNSDatasource) processRecord(rr dns.RR) *DatasourceRecord {
 	cfg := d.Config
 	var name, attrs string
 
@@ -44,15 +42,15 @@ func (d *DNS) processRecord(rr dns.RR) *types.InventoryDatasourceRecord {
 		attrs = dns.Field(rr, dnsRrTxtField)
 	}
 
-	return &types.InventoryDatasourceRecord{
+	return &DatasourceRecord{
 		Hostname:   name,
 		Attributes: attrs,
 	}
 }
 
 // Process several DNS resource records.
-func (d *DNS) processRecords(rrs []dns.RR) []*types.InventoryDatasourceRecord {
-	records := make([]*types.InventoryDatasourceRecord, 0)
+func (d *DNSDatasource) processRecords(rrs []dns.RR) []*DatasourceRecord {
+	records := make([]*DatasourceRecord, 0)
 
 	for _, rr := range rrs {
 		records = append(records, d.processRecord(rr))
@@ -62,7 +60,7 @@ func (d *DNS) processRecords(rrs []dns.RR) []*types.InventoryDatasourceRecord {
 }
 
 // Produce a fully qualified host name for use in DNS requests.
-func (d *DNS) makeFQDN(host string, zone string) string {
+func (d *DNSDatasource) makeFQDN(host string, zone string) string {
 	name := strings.TrimPrefix(host, ".")
 	domain := strings.TrimPrefix(zone, ".")
 
@@ -74,7 +72,7 @@ func (d *DNS) makeFQDN(host string, zone string) string {
 }
 
 // getZone acquires TXT records for all hosts in a specific zone.
-func (d *DNS) getZone(zone string) ([]dns.RR, error) {
+func (d *DNSDatasource) getZone(zone string) ([]dns.RR, error) {
 	cfg := d.Config
 	records := make([]dns.RR, 0)
 
@@ -105,7 +103,7 @@ func (d *DNS) getZone(zone string) ([]dns.RR, error) {
 }
 
 // getHost acquires all TXT records for a specific host.
-func (d *DNS) getHost(host string) ([]dns.RR, error) {
+func (d *DNSDatasource) getHost(host string) ([]dns.RR, error) {
 	cfg := d.Config
 	msg := new(dns.Msg)
 	msg.SetQuestion(host, dns.TypeTXT)
@@ -119,10 +117,10 @@ func (d *DNS) getHost(host string) ([]dns.RR, error) {
 }
 
 // GetAllRecords acquires all available host records.
-func (d *DNS) GetAllRecords() ([]*types.InventoryDatasourceRecord, error) {
+func (d *DNSDatasource) GetAllRecords() ([]*DatasourceRecord, error) {
 	cfg := d.Config
 	log := d.Logger
-	records := make([]*types.InventoryDatasourceRecord, 0)
+	records := make([]*DatasourceRecord, 0)
 
 	for _, zone := range cfg.DNS.Zones {
 		var rrs []dns.RR
@@ -145,9 +143,9 @@ func (d *DNS) GetAllRecords() ([]*types.InventoryDatasourceRecord, error) {
 }
 
 // GetHostRecords acquires all available records for a specific host.
-func (d *DNS) GetHostRecords(host string) ([]*types.InventoryDatasourceRecord, error) {
+func (d *DNSDatasource) GetHostRecords(host string) ([]*DatasourceRecord, error) {
 	cfg := d.Config
-	records := make([]*types.InventoryDatasourceRecord, 0)
+	records := make([]*DatasourceRecord, 0)
 	var err error
 
 	if cfg.DNS.Notransfer.Enabled {
@@ -194,4 +192,4 @@ func (d *DNS) GetHostRecords(host string) ([]*types.InventoryDatasourceRecord, e
 }
 
 // Close datasource and perform housekeeping.
-func (d *DNS) Close() {}
+func (d *DNSDatasource) Close() {}

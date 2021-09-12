@@ -10,9 +10,10 @@ import (
 	"gopkg.in/validator.v2"
 
 	"github.com/NeonSludge/ansible-dns-inventory/internal/logger"
-	"github.com/NeonSludge/ansible-dns-inventory/pkg/datasource"
-	"github.com/NeonSludge/ansible-dns-inventory/pkg/types"
 )
+
+var ADIHostAttributeNames map[string]string
+var ADITxtKeysSeparator string
 
 // safeAttr validates host attributes.
 func safeAttr(v interface{}, param string) error {
@@ -170,7 +171,7 @@ func (i *Inventory) ParseAttributes(raw string) (*HostAttributes, error) {
 }
 
 // New creates an instance of the DNS inventory.
-func New(cfg *types.InventoryConfig) (*Inventory, error) {
+func New(cfg *Config) (*Inventory, error) {
 	// Setup package global state
 	ADIHostAttributeNames = make(map[string]string)
 	ADIHostAttributeNames["OS"] = cfg.Txt.Keys.Os
@@ -190,7 +191,7 @@ func New(cfg *types.InventoryConfig) (*Inventory, error) {
 	}
 
 	// Initialize datasource.
-	ds, err := datasource.New(cfg)
+	ds, err := NewDatasource(cfg)
 	if err != nil {
 		return nil, errors.Wrap(err, "datasource initialization failure")
 	}
