@@ -41,13 +41,13 @@ etcd:
     - server.local.
   # Etcd authentication configuration.
   auth:
-    # Environment variable: ADI_ETCD_AUTH_USERNAME
+    # Username. Environment variable: ADI_ETCD_AUTH_USERNAME
     username: ""
-    # Environment variable: ADI_ETCD_AUTH_PASSWORD
+    # Password. Environment variable: ADI_ETCD_AUTH_PASSWORD
     password: ""
   # Etcd TLS configuration.
   tls:
-    # Enable TLS Environment variable: ADI_ETCD_TLS_ENABLED
+    # Enable TLS. Environment variable: ADI_ETCD_TLS_ENABLED
     enabled: true
     # Skip verification of the etcd server's certificate chain and host name. Environment variable: ADI_ETCD_TLS_INSECURE
     insecure: false

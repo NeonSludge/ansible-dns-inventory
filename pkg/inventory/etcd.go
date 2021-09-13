@@ -15,7 +15,7 @@ import (
 )
 
 type (
-	// EtcdDatasource implemets an etcd datasource.
+	// EtcdDatasource implements an etcd datasource.
 	EtcdDatasource struct {
 		// Inventory configuration.
 		Config *Config
