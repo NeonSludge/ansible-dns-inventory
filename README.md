@@ -262,5 +262,5 @@ $ dns-inventory -attrs -format yaml-flow
 
 ## Roadmap
 
-- [ ] Implement key-value stores support (etcd, Consul, etc.).
-- [ ] Support using `ansible-dns-inventory` as a library.
+- [x] Implement key-value stores support (etcd, Consul, etc.).
+- [x] Support using `ansible-dns-inventory` as a library.
