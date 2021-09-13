@@ -31,7 +31,7 @@ func main() {
 	// Create a global logger.
 	log, err := logger.New("info")
 	if err != nil {
-		fmt.Println("Fatal error: ", err)
+		fmt.Println("Logger initialization failure: ", err)
 		os.Exit(1)
 	}
 
@@ -59,6 +59,10 @@ func main() {
 		hosts, err := dnsInventory.GetHosts()
 		if err != nil {
 			log.Fatal(err)
+		}
+
+		if len(hosts) == 0 {
+			log.Fatal("no host records found")
 		}
 
 		// Load host records into the inventory tree.

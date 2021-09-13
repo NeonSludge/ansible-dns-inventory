@@ -91,13 +91,10 @@ func (i *Inventory) GetHostVariables(host string) (map[string]string, error) {
 			continue
 		}
 
-		if len(attrs.Vars) > 0 {
-			pairs := strings.Split(attrs.Vars, cfg.Txt.Vars.Separator)
-
-			for _, p := range pairs {
-				kv := strings.Split(p, cfg.Txt.Vars.Equalsign)
-				variables[kv[0]] = kv[1]
-			}
+		pairs := strings.Split(attrs.Vars, cfg.Txt.Vars.Separator)
+		for _, p := range pairs {
+			kv := strings.Split(p, cfg.Txt.Vars.Equalsign)
+			variables[kv[0]] = kv[1]
 		}
 	}
 
@@ -112,10 +109,6 @@ func (i *Inventory) GetHosts() (map[string][]*HostAttributes, error) {
 	records, err := i.Datasource.GetAllRecords()
 	if err != nil {
 		return nil, errors.Wrap(err, "record loading failure")
-	}
-
-	if len(records) == 0 {
-		return nil, errors.New("no host records found")
 	}
 
 	for _, r := range records {
