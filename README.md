@@ -3,7 +3,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/NeonSludge/ansible-dns-inventory)](https://goreportcard.com/report/github.com/NeonSludge/ansible-dns-inventory)
 [![Go Reference](https://pkg.go.dev/badge/github.com/NeonSludge/ansible-dns-inventory.svg)](https://pkg.go.dev/github.com/NeonSludge/ansible-dns-inventory)
 
-A tool that processes sets of host attributes stored as DNS TXT records or key/value pairs in etcd to create a tree-like inventory of your infrastructure that can be immediately consumed by Ansible or exported in several helpful formats.
+A CLI tool (and a library) that processes sets of host attributes stored as DNS TXT records or key/value pairs in etcd to create a tree-like inventory of your infrastructure that can be immediately consumed by Ansible or exported in several helpful formats.
 
 ## Features
 
@@ -16,6 +16,7 @@ A tool that processes sets of host attributes stored as DNS TXT records or key/v
 - Predictable and stable inventory structure.
 - Multiple records per host supported.
 - Optional custom Ansible variables in host records (see caveats in the 'Host variables' section).
+- Can be used as a library.
 
 ## Usage
 
