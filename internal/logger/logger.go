@@ -20,7 +20,7 @@ func New(level string) (*zap.SugaredLogger, error) {
 			"timeEncoder": "iso8601",
 	    "messageKey": "message",
 	    "levelKey": "level",
-	    "levelEncoder": "capitalColor"
+	    "levelEncoder": "capital"
 	  }
 	}`)
 
