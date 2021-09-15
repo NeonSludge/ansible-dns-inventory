@@ -1,6 +1,7 @@
 package inventory
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -52,10 +53,35 @@ func safeAttr(v interface{}, param string) error {
 	return nil
 }
 
+// MarshalJSON implements a custom JSON Marshaller for host attributes.
+func (a *HostAttributes) MarshalJSON() ([]byte, error) {
+	attrs := make(map[string]string)
+
+	attrs[adiHostAttributeNames["OS"]] = a.OS
+	attrs[adiHostAttributeNames["ENV"]] = a.Env
+	attrs[adiHostAttributeNames["ROLE"]] = a.Role
+	attrs[adiHostAttributeNames["SRV"]] = a.Srv
+	attrs[adiHostAttributeNames["VARS"]] = a.Vars
+
+	return json.Marshal(attrs)
+}
+
+// MarshalYAML implements a custom YAML Marshaller for host attributes.
+func (a *HostAttributes) MarshalYAML() (interface{}, error) {
+	attrs := make(map[string]string)
+
+	attrs[adiHostAttributeNames["OS"]] = a.OS
+	attrs[adiHostAttributeNames["ENV"]] = a.Env
+	attrs[adiHostAttributeNames["ROLE"]] = a.Role
+	attrs[adiHostAttributeNames["SRV"]] = a.Srv
+	attrs[adiHostAttributeNames["VARS"]] = a.Vars
+
+	return attrs, nil
+}
+
 // ImportHosts loads a map of hosts and their attributes into the inventory tree.
 func (i *Inventory) ImportHosts(hosts map[string][]*HostAttributes) {
 	i.Tree.ImportHosts(hosts, i.Config.Txt.Keys.Separator)
-	i.Tree.SortChildren()
 }
 
 // ExportHosts exports the inventory tree into a map of hosts and groups they belong to.

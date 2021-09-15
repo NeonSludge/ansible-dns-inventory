@@ -77,6 +77,7 @@ func (n *Node) ImportHosts(hosts map[string][]*HostAttributes, sep string) {
 			}
 		}
 	}
+	n.SortChildren()
 }
 
 // GetAncestors returns all ancestor nodes, starting from this node.
@@ -130,10 +131,10 @@ func (n *Node) AddChild(name string) *Node {
 		}
 	}
 
-	node := &Node{Name: name, Parent: n, Hosts: make(map[string]bool)}
-	n.Children = append(n.Children, node)
+	child := &Node{Name: name, Parent: n, Hosts: make(map[string]bool)}
+	n.Children = append(n.Children, child)
 
-	return node
+	return child
 }
 
 // AddHost adds a host to this node.

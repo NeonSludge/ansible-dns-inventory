@@ -1,9 +1,5 @@
 package inventory
 
-import (
-	"encoding/json"
-)
-
 type (
 	// Inventory implements a dynamic inventory for Ansible.
 	Inventory struct {
@@ -207,29 +203,3 @@ type (
 		Hosts []string `json:"hosts" yaml:"hosts"`
 	}
 )
-
-// MarshalJSON implements a custom JSON Marshaller for host attributes.
-func (a *HostAttributes) MarshalJSON() ([]byte, error) {
-	attrs := make(map[string]string)
-
-	attrs[adiHostAttributeNames["OS"]] = a.OS
-	attrs[adiHostAttributeNames["ENV"]] = a.Env
-	attrs[adiHostAttributeNames["ROLE"]] = a.Role
-	attrs[adiHostAttributeNames["SRV"]] = a.Srv
-	attrs[adiHostAttributeNames["VARS"]] = a.Vars
-
-	return json.Marshal(attrs)
-}
-
-// MarshalYAML implements a custom YAML Marshaller for host attributes.
-func (a *HostAttributes) MarshalYAML() (interface{}, error) {
-	attrs := make(map[string]string)
-
-	attrs[adiHostAttributeNames["OS"]] = a.OS
-	attrs[adiHostAttributeNames["ENV"]] = a.Env
-	attrs[adiHostAttributeNames["ROLE"]] = a.Role
-	attrs[adiHostAttributeNames["SRV"]] = a.Srv
-	attrs[adiHostAttributeNames["VARS"]] = a.Vars
-
-	return attrs, nil
-}
