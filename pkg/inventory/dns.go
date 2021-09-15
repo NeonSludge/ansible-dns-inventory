@@ -196,21 +196,16 @@ func (d *DNSDatasource) Close() {}
 
 // NewDNSDatasource creates a DNS datasource.
 func NewDNSDatasource(cfg *Config) (*DNSDatasource, error) {
-	t, err := time.ParseDuration(cfg.DNS.Timeout)
-	if err != nil {
-		return nil, errors.Wrap(err, "dns datasource initialization failure")
-	}
-
 	return &DNSDatasource{
 		Config: cfg,
 		Logger: cfg.Logger,
 		Client: &dns.Client{
-			Timeout: t,
+			Timeout: cfg.DNS.Timeout,
 		},
 		Transfer: &dns.Transfer{
-			DialTimeout:  t,
-			ReadTimeout:  t,
-			WriteTimeout: t,
+			DialTimeout:  cfg.DNS.Timeout,
+			ReadTimeout:  cfg.DNS.Timeout,
+			WriteTimeout: cfg.DNS.Timeout,
 		},
 	}, nil
 }

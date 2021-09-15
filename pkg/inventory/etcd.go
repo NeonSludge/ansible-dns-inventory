@@ -6,7 +6,6 @@ import (
 	"crypto/x509"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/pkg/errors"
 	"go.etcd.io/etcd/api/v3/mvccpb"
@@ -68,13 +67,7 @@ func (e *EtcdDatasource) processKVs(kvs []*mvccpb.KeyValue) []*DatasourceRecord 
 // getPrefix acquires all key/value records for a specific prefix.
 func (e *EtcdDatasource) getPrefix(prefix string) ([]*mvccpb.KeyValue, error) {
 	cfg := e.Config
-
-	t, err := time.ParseDuration(cfg.Etcd.Timeout)
-	if err != nil {
-		return nil, errors.Wrap(err, "etcd request failure")
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), t)
+	ctx, cancel := context.WithTimeout(context.Background(), cfg.Etcd.Timeout)
 	resp, err := e.Client.Get(ctx, prefix, etcdv3.WithPrefix())
 	cancel()
 	if err != nil {
@@ -168,15 +161,10 @@ func makeEtcdTLSConfig(cfg *Config) (*tls.Config, error) {
 
 // NewEtcdDatasource creates an etcd datasource.
 func NewEtcdDatasource(cfg *Config) (*EtcdDatasource, error) {
-	t, err := time.ParseDuration(cfg.Etcd.Timeout)
-	if err != nil {
-		return nil, errors.Wrap(err, "etcd datasource initialization failure")
-	}
-
 	// Etcd client configuration
 	clientCfg := etcdv3.Config{
 		Endpoints:   cfg.Etcd.Endpoints,
-		DialTimeout: t,
+		DialTimeout: cfg.Etcd.Timeout,
 		Username:    cfg.Etcd.Auth.Username,
 		Password:    cfg.Etcd.Auth.Password,
 	}

@@ -1,5 +1,9 @@
 package inventory
 
+import (
+	"time"
+)
+
 type (
 	// Inventory implements a dynamic inventory for Ansible.
 	Inventory struct {
@@ -26,7 +30,7 @@ type (
 			// DNS server address.
 			Server string `mapstructure:"server"`
 			// Network timeout for DNS requests.
-			Timeout string `mapstructure:"timeout"`
+			Timeout time.Duration `mapstructure:"timeout"`
 			// DNS zone list.
 			Zones []string `mapstructure:"zones"`
 			// No-transfer mode configuration.
@@ -56,7 +60,7 @@ type (
 			// Etcd cluster endpoints.
 			Endpoints []string `mapstructure:"endpoints"`
 			// Network timeout for etcd requests.
-			Timeout string `mapstructure:"timeout"`
+			Timeout time.Duration `mapstructure:"timeout"`
 			// Etcd k/v path prefix.
 			Prefix string `mapstructure:"prefix"`
 			// Etcd host zone list.
