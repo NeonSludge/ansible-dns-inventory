@@ -117,10 +117,14 @@ func (i *Inventory) GetHostVariables(host string) (map[string]string, error) {
 			continue
 		}
 
-		pairs := strings.Split(attrs.Vars, cfg.Txt.Vars.Separator)
-		for _, p := range pairs {
-			kv := strings.Split(p, cfg.Txt.Vars.Equalsign)
-			variables[kv[0]] = kv[1]
+		if len(attrs.Vars) > 0 {
+			pairs := strings.Split(attrs.Vars, cfg.Txt.Vars.Separator)
+			for _, p := range pairs {
+				kv := strings.Split(p, cfg.Txt.Vars.Equalsign)
+				if len(kv) == 2 {
+					variables[kv[0]] = kv[1]
+				}
+			}
 		}
 	}
 
