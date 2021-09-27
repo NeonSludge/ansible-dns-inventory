@@ -171,7 +171,7 @@ func (i *Inventory) ParseAttributes(raw string) (*HostAttributes, error) {
 	items := strings.Split(raw, cfg.Txt.Kv.Separator)
 
 	for _, item := range items {
-		kv := strings.Split(item, cfg.Txt.Kv.Equalsign)
+		kv := strings.SplitN(item, cfg.Txt.Kv.Equalsign, 2)
 		switch kv[0] {
 		case cfg.Txt.Keys.Os:
 			attrs.OS = kv[1]
@@ -182,7 +182,7 @@ func (i *Inventory) ParseAttributes(raw string) (*HostAttributes, error) {
 		case cfg.Txt.Keys.Srv:
 			attrs.Srv = kv[1]
 		case cfg.Txt.Keys.Vars:
-			attrs.Vars = strings.Join(kv[1:], cfg.Txt.Kv.Equalsign)
+			attrs.Vars = kv[1]
 		}
 	}
 
