@@ -2,55 +2,36 @@ package inventory
 
 import (
 	"encoding/json"
-	"fmt"
-	"reflect"
 	"regexp"
 	"strings"
 
+	"github.com/go-playground/validator/v10"
+	"github.com/go-playground/validator/v10/non-standard/validators"
 	"github.com/pkg/errors"
-	"gopkg.in/validator.v2"
 
 	"github.com/NeonSludge/ansible-dns-inventory/internal/logger"
 )
 
-var adiHostAttributeNames map[string]string
-var adiTxtKeysSeparator string
+const (
+	adiSafeListRegexString              = "^[A-Za-z0-9\\,]*$"
+	adiSafeListWithSeparatorRegexString = "^[A-Za-z0-9\\,\\-\\_]*$"
+)
 
-// safeAttr validates host attributes.
-func safeAttr(v interface{}, param string) error {
-	value := reflect.ValueOf(v)
-	if value.Kind() != reflect.String {
-		return errors.New("safeAttr() can only validate strings")
-	}
+var (
+	adiHostAttributeNames map[string]string
 
-	re := "^[A-Za-z0-9"
+	adiSafeListRegex              = regexp.MustCompile(adiSafeListRegexString)
+	adiSafeListWithSeparatorRegex = regexp.MustCompile(adiSafeListWithSeparatorRegexString)
+)
 
-	// Deprecated: using '-' in group names.
-	if adiTxtKeysSeparator == "-" {
-		re += "\\_"
-	}
+// isSafeList validates if the field's value is a valid attribute list.
+func isSafeList(fl validator.FieldLevel) bool {
+	return adiSafeListRegex.MatchString(fl.Field().String())
+}
 
-	switch param {
-	case "srv":
-		re += "\\,\\" + adiTxtKeysSeparator + "]*$"
-	case "list":
-		re += "\\," + "]*$"
-	case "vars":
-		re = "^[[:print:]]*$"
-	default:
-		re += "]*$"
-	}
-
-	pattern, err := regexp.Compile(re)
-	if err != nil {
-		return errors.Wrap(err, "regex compilation error")
-	}
-
-	if !pattern.MatchString(value.String()) {
-		return fmt.Errorf("string '%s' is not a valid host attribute value (expr: %s)", value.String(), re)
-	}
-
-	return nil
+// isSafeList validates if the field's value is a valid attribute list with separators that are allowed in Ansible group names.
+func isSafeListWithSeparator(fl validator.FieldLevel) bool {
+	return adiSafeListWithSeparatorRegex.MatchString(fl.Field().String())
 }
 
 // MarshalJSON implements a custom JSON Marshaller for host attributes.
@@ -186,7 +167,7 @@ func (i *Inventory) ParseAttributes(raw string) (*HostAttributes, error) {
 		}
 	}
 
-	if err := validator.Validate(attrs); err != nil {
+	if err := i.Validator.Struct(attrs); err != nil {
 		return nil, errors.Wrap(err, "attribute validation error")
 	}
 
@@ -202,7 +183,6 @@ func New(cfg *Config) (*Inventory, error) {
 	adiHostAttributeNames["ROLE"] = cfg.Txt.Keys.Role
 	adiHostAttributeNames["SRV"] = cfg.Txt.Keys.Srv
 	adiHostAttributeNames["VARS"] = cfg.Txt.Keys.Vars
-	adiTxtKeysSeparator = cfg.Txt.Keys.Separator
 
 	// Initialize logger.
 	if cfg.Logger == nil {
@@ -219,14 +199,17 @@ func New(cfg *Config) (*Inventory, error) {
 		return nil, errors.Wrap(err, "datasource initialization failure")
 	}
 
-	// Initialize struct validators.
-	if err := validator.SetValidationFunc("safe", safeAttr); err != nil {
-		return nil, errors.Wrap(err, "validator initialization failure")
-	}
+	// Initialize struct validator.
+	validator := validator.New()
+	validator.RegisterValidation("notblank", validators.NotBlank)
+	validator.RegisterValidation("safelist", isSafeList)
+	validator.RegisterValidation("safelistsep", isSafeListWithSeparator)
 
 	i := &Inventory{
-		Config:     cfg,
-		Logger:     cfg.Logger,
+		Config:    cfg,
+		Logger:    cfg.Logger,
+		Validator: validator,
+
 		Datasource: ds,
 		Tree:       NewTree(),
 	}

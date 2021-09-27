@@ -2,6 +2,8 @@ package inventory
 
 import (
 	"time"
+
+	"github.com/go-playground/validator/v10"
 )
 
 type (
@@ -9,10 +11,12 @@ type (
 	Inventory struct {
 		// Inventory configuration.
 		Config *Config
-		// Inventory datasource.
-		Datasource Datasource
 		// Inventory logger.
 		Logger Logger
+		// Inventory validator.
+		Validator *validator.Validate
+		// Inventory datasource.
+		Datasource Datasource
 		// Inventory tree.
 		Tree *Node
 	}
@@ -166,15 +170,15 @@ type (
 	// HostAttributes represents host attributes found in TXT records.
 	HostAttributes struct {
 		// Host operating system identifier.
-		OS string `validate:"nonzero,safe"`
+		OS string `validate:"required,notblank,alphanum"`
 		// Host environment identifier.
-		Env string `validate:"nonzero,safe"`
+		Env string `validate:"required,notblank,alphanum"`
 		// Host role identifier.
-		Role string `validate:"nonzero,safe=list"`
+		Role string `validate:"required,notblank,safelist"`
 		// Host service identifier.
-		Srv string `validate:"safe=srv"`
+		Srv string `validate:"safelistsep"`
 		// Host variables
-		Vars string `validate:"safe=vars"`
+		Vars string `validate:"printascii"`
 	}
 
 	// AnsibleGroup is an Ansible group ready to be marshalled into a JSON representation.
