@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/creasty/defaults"
 	"github.com/go-playground/validator/v10"
 	"github.com/go-playground/validator/v10/non-standard/validators"
 	"github.com/pkg/errors"
@@ -174,8 +175,12 @@ func (i *Inventory) ParseAttributes(raw string) (*HostAttributes, error) {
 	return attrs, nil
 }
 
-// New creates an instance of the DNS inventory.
+// New creates an instance of the DNS inventory with user-supplied configuration.
 func New(cfg *Config) (*Inventory, error) {
+	if err := defaults.Set(cfg); err != nil {
+		return nil, errors.Wrap(err, "defaults initialization failure")
+	}
+
 	// Setup package global state
 	adiHostAttributeNames = make(map[string]string)
 	adiHostAttributeNames["OS"] = cfg.Txt.Keys.Os
@@ -215,4 +220,9 @@ func New(cfg *Config) (*Inventory, error) {
 	}
 
 	return i, nil
+}
+
+// NewDefault creates an instance of the DNS inventory with the default configuration.
+func NewDefault() (*Inventory, error) {
+	return New(&Config{})
 }

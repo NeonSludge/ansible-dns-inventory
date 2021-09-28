@@ -3,13 +3,57 @@ package config
 import (
 	"os"
 	"strings"
-	"time"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 
 	"github.com/NeonSludge/ansible-dns-inventory/pkg/inventory"
 )
+
+const (
+	adiEnvPrefix = "ADI"
+)
+
+func configKeys() []string {
+	return []string{
+		"datasource",
+		"dns.server",
+		"dns.timeout",
+		"dns.zones",
+		"dns.notransfer.enabled",
+		"dns.notransfer.host",
+		"dns.notransfer.separator",
+		"dns.tsig.enabled",
+		"dns.tsig.key",
+		"dns.tsig.secret",
+		"dns.tsig.algo",
+		"etcd.endpoints",
+		"etcd.timeout",
+		"etcd.prefix",
+		"etcd.zones",
+		"etcd.auth.username",
+		"etcd.auth.password",
+		"etcd.tls.enabled",
+		"etcd.tls.insecure",
+		"etcd.tls.ca.path",
+		"etcd.tls.ca.pem",
+		"etcd.tls.certificate.path",
+		"etcd.tls.certificate.pem",
+		"etcd.tls.key.path",
+		"etcd.tls.key.pem",
+		"txt.kv.separator",
+		"txt.kv.equalsign",
+		"txt.vars.enabled",
+		"txt.vars.separator",
+		"txt.vars.equalsign",
+		"txt.keys.separator",
+		"txt.keys.os",
+		"txt.keys.env",
+		"txt.keys.role",
+		"txt.keys.srv",
+		"txt.keys.vars",
+	}
+}
 
 // tsigAlgo processes user-supplied TSIG algorithm names.
 func tsigAlgo(algo string) string {
@@ -51,60 +95,23 @@ func Load() (*inventory.Config, error) {
 	}
 
 	// Setup environment variables handling.
-	v.SetEnvPrefix("adi")
+	v.SetEnvPrefix(adiEnvPrefix)
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()
 
-	// Set defaults.
-	v.SetDefault("datasource", "dns")
-
-	v.SetDefault("dns.server", "127.0.0.1:53")
-	v.SetDefault("dns.timeout", 30*time.Second)
-	v.SetDefault("dns.zones", []string{"server.local."})
-
-	v.SetDefault("dns.notransfer.enabled", false)
-	v.SetDefault("dns.notransfer.host", "ansible-dns-inventory")
-	v.SetDefault("dns.notransfer.separator", ":")
-
-	v.SetDefault("dns.tsig.enabled", false)
-	v.SetDefault("dns.tsig.key", "axfr.")
-	v.SetDefault("dns.tsig.secret", "c2VjcmV0Cg==")
-	v.SetDefault("dns.tsig.algo", "hmac-sha256")
-
-	v.SetDefault("etcd.endpoints", []string{"127.0.0.1:2379"})
-	v.SetDefault("etcd.timeout", 30*time.Second)
-	v.SetDefault("etcd.prefix", "ANSIBLE_INVENTORY")
-	v.SetDefault("etcd.zones", []string{"server.local."})
-	v.SetDefault("etcd.auth.username", "")
-	v.SetDefault("etcd.auth.password", "")
-	v.SetDefault("etcd.tls.enabled", true)
-	v.SetDefault("etcd.tls.insecure", false)
-	v.SetDefault("etcd.tls.ca.path", "")
-	v.SetDefault("etcd.tls.ca.pem", "")
-	v.SetDefault("etcd.tls.certificate.path", "")
-	v.SetDefault("etcd.tls.certificate.pem", "")
-	v.SetDefault("etcd.tls.key.path", "")
-	v.SetDefault("etcd.tls.key.pem", "")
-
-	v.SetDefault("txt.kv.separator", ";")
-	v.SetDefault("txt.kv.equalsign", "=")
-
-	v.SetDefault("txt.vars.enabled", false)
-	v.SetDefault("txt.vars.separator", ",")
-	v.SetDefault("txt.vars.equalsign", "=")
-
-	v.SetDefault("txt.keys.separator", "_")
-	v.SetDefault("txt.keys.os", "OS")
-	v.SetDefault("txt.keys.env", "ENV")
-	v.SetDefault("txt.keys.role", "ROLE")
-	v.SetDefault("txt.keys.srv", "SRV")
-	v.SetDefault("txt.keys.vars", "VARS")
+	// Bind environment variables to configuration keys.
+	for _, key := range configKeys() {
+		if err := v.BindEnv(key); err != nil {
+			return nil, errors.Wrap(err, "failed to bind environment variables")
+		}
+	}
 
 	// Process user-supplied TSIG algorithm name.
 	v.Set("dns.tsig.algo", tsigAlgo(v.GetString("dns.tsig.algo")))
 
 	cfg := &inventory.Config{}
 
+	// Unmarshal Viper configuration to an instance of inventory.Config.
 	if err := v.Unmarshal(cfg); err != nil {
 		return nil, errors.Wrap(err, "failed to unmarshal configuration")
 	}

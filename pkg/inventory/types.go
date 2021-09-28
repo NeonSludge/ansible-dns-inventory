@@ -28,74 +28,74 @@ type (
 		Logger Logger
 		// Datasource type.
 		// Currently supported: dns, etcd.
-		Datasource string `mapstructure:"datasource"`
+		Datasource string `mapstructure:"datasource" default:"dns"`
 		// DNS datasource configuration.
 		DNS struct {
 			// DNS server address.
-			Server string `mapstructure:"server"`
+			Server string `mapstructure:"server" default:"127.0.0.1:53"`
 			// Network timeout for DNS requests.
-			Timeout time.Duration `mapstructure:"timeout"`
+			Timeout time.Duration `mapstructure:"timeout" default:"30s"`
 			// DNS zone list.
-			Zones []string `mapstructure:"zones"`
+			Zones []string `mapstructure:"zones" default:"[\"server.local.\"]"`
 			// No-transfer mode configuration.
 			Notransfer struct {
 				// Enable no-transfer data retrieval mode.
-				Enabled bool `mapstructure:"enabled"`
+				Enabled bool `mapstructure:"enabled" default:"false"`
 				// A host whose TXT records contain inventory data.
-				Host string `mapstructure:"host"`
+				Host string `mapstructure:"host" default:"ansible-dns-inventory"`
 				// Separator between a hostname and an attribute string in a TXT record.
-				Separator string `mapstructure:"separator"`
+				Separator string `mapstructure:"separator" default:":"`
 			} `mapstructure:"notransfer"`
 			// TSIG parameters (used only with zone transfer requests).
 			Tsig struct {
 				// Enable TSIG.
-				Enabled bool `mapstructure:"enabled"`
+				Enabled bool `mapstructure:"enabled" default:"false"`
 				// TSIG key name.
-				Key string `mapstructure:"key"`
+				Key string `mapstructure:"key" default:"axfr."`
 				// TSIG secret (base64-encoded).
-				Secret string `mapstructure:"secret"`
+				Secret string `mapstructure:"secret" default:"c2VjcmV0Cg=="`
 				// TSIG algorithm.
 				// Allowed values: 'hmac-sha1', hmac-sha224, 'hmac-sha256', 'hmac-sha384', 'hmac-sha512'. 'hmac-sha256' is used if an invalid value is specified.
-				Algo string `mapstructure:"algo"`
+				Algo string `mapstructure:"algo" default:"hmac-sha256."`
 			} `mapstructure:"tsig"`
 		} `mapstructure:"dns"`
 		// Etcd datasource configuration.
 		Etcd struct {
 			// Etcd cluster endpoints.
-			Endpoints []string `mapstructure:"endpoints"`
+			Endpoints []string `mapstructure:"endpoints" default:"[\"127.0.0.1:2379\"]"`
 			// Network timeout for etcd requests.
-			Timeout time.Duration `mapstructure:"timeout"`
+			Timeout time.Duration `mapstructure:"timeout" default:"30s"`
 			// Etcd k/v path prefix.
-			Prefix string `mapstructure:"prefix"`
+			Prefix string `mapstructure:"prefix" default:"ANSIBLE_INVENTORY"`
 			// Etcd host zone list.
-			Zones []string `mapstructure:"zones"`
+			Zones []string `mapstructure:"zones" default:"[\"server.local.\"]"`
 			// Etcd authentication configuration.
 			Auth struct {
 				// Username for authentication.
-				Username string `mapstructure:"username"`
+				Username string `mapstructure:"username" default:""`
 				// Password for authentication.
-				Password string `mapstructure:"password"`
+				Password string `mapstructure:"password" default:""`
 			} `mapstructure:"auth"`
 			// Etcd TLS configuration.
 			TLS struct {
 				// Enable TLS.
-				Enabled bool `mapstructure:"enabled"`
+				Enabled bool `mapstructure:"enabled" default:"true"`
 				// Skip verification of the etcd server's certificate chain and host name.
-				Insecure bool `mapstructure:"insecure"`
+				Insecure bool `mapstructure:"insecure" default:"false"`
 				// Trusted CA bundle.
 				CA struct {
-					Path string `mapstructure:"path"`
-					PEM  string `mapstructure:"pem"`
+					Path string `mapstructure:"path" default:""`
+					PEM  string `mapstructure:"pem" default:""`
 				} `mapstructure:"ca"`
 				// User certificate.
 				Certificate struct {
-					Path string `mapstructure:"path"`
-					PEM  string `mapstructure:"pem"`
+					Path string `mapstructure:"path" default:""`
+					PEM  string `mapstructure:"pem" default:""`
 				} `mapstructure:"certificate"`
 				// User private key.
 				Key struct {
-					Path string `mapstructure:"path"`
-					PEM  string `mapstructure:"pem"`
+					Path string `mapstructure:"path" default:""`
+					PEM  string `mapstructure:"pem" default:""`
 				} `mapstructure:"key"`
 			} `mapstructure:"tls"`
 		} `mapstructure:"etcd"`
@@ -104,33 +104,33 @@ type (
 			// Key/value pair parsing configuration.
 			Kv struct {
 				// Separator between k/v pairs found in TXT records.
-				Separator string `mapstructure:"separator"`
+				Separator string `mapstructure:"separator" default:";"`
 				// Separator between a key and a value.
-				Equalsign string `mapstructure:"equalsign"`
+				Equalsign string `mapstructure:"equalsign" default:"="`
 			} `mapstructure:"kv"`
 			// Host variables parsing configuration.
 			Vars struct {
 				// Enable host variables support.
-				Enabled bool `mapstructure:"enabled"`
+				Enabled bool `mapstructure:"enabled" default:"false"`
 				// Separator between k/v pairs found in the host variables attribute.
-				Separator string `mapstructure:"separator"`
+				Separator string `mapstructure:"separator" default:","`
 				// Separator between a key and a value.
-				Equalsign string `mapstructure:"equalsign"`
+				Equalsign string `mapstructure:"equalsign" default:"="`
 			} `mapstructure:"vars"`
 			// Host attributes parsing configuration.
 			Keys struct {
 				// Separator between elements of an Ansible group name.
-				Separator string `mapstructure:"separator"`
+				Separator string `mapstructure:"separator" default:"_"`
 				// Key name of the attribute containing the host operating system identifier.
-				Os string `mapstructure:"os"`
+				Os string `mapstructure:"os" default:"OS"`
 				// Key name of the attribute containing the host environment identifier.
-				Env string `mapstructure:"env"`
+				Env string `mapstructure:"env" default:"ENV"`
 				// Key name of the attribute containing the host role identifier.
-				Role string `mapstructure:"role"`
+				Role string `mapstructure:"role" default:"ROLE"`
 				// Key name of the attribute containing the host service identifier.
-				Srv string `mapstructure:"srv"`
+				Srv string `mapstructure:"srv" default:"SRV"`
 				// Key name of the attribute containing the host variables.
-				Vars string `mapstructure:"vars"`
+				Vars string `mapstructure:"vars" default:"VARS"`
 			} `mapstructure:"keys"`
 		} `mapstructure:"txt"`
 	}
