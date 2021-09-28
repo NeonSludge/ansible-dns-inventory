@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/NeonSludge/ansible-dns-inventory/internal/build"
@@ -14,9 +13,6 @@ import (
 )
 
 func main() {
-	// Setup logging.
-	log.SetOutput(os.Stderr)
-
 	// Parse flags.
 	listFlag := flag.Bool("list", false, "produce a JSON inventory for Ansible")
 	hostsFlag := flag.Bool("hosts", false, "export hosts")
