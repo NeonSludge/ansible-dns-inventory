@@ -2,17 +2,25 @@ package logger
 
 import (
 	"encoding/json"
+	"os"
 
+	"github.com/mattn/go-isatty"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
 
 func New(level string) (*zap.SugaredLogger, error) {
 	var cfg zap.Config
+	enc := "json"
+
+	if isatty.IsTerminal(os.Stdout.Fd()) {
+		enc = "console"
+	}
+
 	cfgJSON := []byte(`{
 		"development": false,
 	  "level": "` + level + `",
-	  "encoding": "console",
+	  "encoding": "` + enc + `",
 	  "outputPaths": ["stderr"],
 	  "errorOutputPaths": ["stderr"],
 	  "encoderConfig": {

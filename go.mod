@@ -5,6 +5,7 @@ go 1.15
 require (
 	github.com/creasty/defaults v1.5.2
 	github.com/go-playground/validator/v10 v10.9.0
+	github.com/mattn/go-isatty v0.0.14
 	github.com/miekg/dns v1.1.43
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/viper v1.9.0
