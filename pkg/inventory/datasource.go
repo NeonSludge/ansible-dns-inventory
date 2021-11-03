@@ -8,9 +8,9 @@ import (
 func NewDatasource(cfg *Config) (Datasource, error) {
 	// Select datasource implementation.
 	switch cfg.Datasource {
-	case "dns":
+	case DNSDatasourceType:
 		return NewDNSDatasource(cfg)
-	case "etcd":
+	case EtcdDatasourceType:
 		return NewEtcdDatasource(cfg)
 	default:
 		return nil, errors.Errorf("unknown datasource type: %s", cfg.Datasource)

@@ -13,6 +13,11 @@ import (
 	etcdns "go.etcd.io/etcd/client/v3/namespace"
 )
 
+const (
+	// Etcd datasource type.
+	EtcdDatasourceType string = "etcd"
+)
+
 type (
 	// EtcdDatasource implements an etcd datasource.
 	EtcdDatasource struct {

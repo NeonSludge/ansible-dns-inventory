@@ -9,6 +9,8 @@ import (
 )
 
 const (
+	// DNS datasource type.
+	DNSDatasourceType string = "dns"
 	// DNS TXT record type.
 	dnsRrTxtType uint16 = 16
 	// Number of the field that contains the TXT record value.
