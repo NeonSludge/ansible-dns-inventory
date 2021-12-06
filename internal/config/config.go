@@ -4,6 +4,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/creasty/defaults"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 
@@ -110,6 +111,10 @@ func Load() (*inventory.Config, error) {
 	v.Set("dns.tsig.algo", tsigAlgo(v.GetString("dns.tsig.algo")))
 
 	cfg := &inventory.Config{}
+
+	if err := defaults.Set(cfg); err != nil {
+		return nil, errors.Wrap(err, "defaults initialization failure")
+	}
 
 	// Unmarshal Viper configuration to an instance of inventory.Config.
 	if err := v.Unmarshal(cfg); err != nil {
