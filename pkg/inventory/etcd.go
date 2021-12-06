@@ -33,37 +33,36 @@ type (
 // processKVs processes several k/v pairs.
 func (e *EtcdDatasource) processKVs(kvs []*mvccpb.KeyValue) []*DatasourceRecord {
 	log := e.Logger
-	var name string
 	records := make([]*DatasourceRecord, 0)
 
-	// Host attribute sets
-	sets := make(map[int]string)
+	// Sets of attributes for every host.
+	hosts := make(map[string]map[int]string)
 
 	for _, kv := range kvs {
 		key := strings.Split(string(kv.Key), "/")
 		value := string(kv.Value)
 
 		// Determine which set of host attributes we are working with.
-		num, err := strconv.Atoi(key[2])
+		setN, err := strconv.Atoi(key[2])
 		if err != nil {
 			log.Warnf("[%s] skipping host attributes set: %v", key[1], err)
 			continue
 		}
 
-		// Set hostname.
-		if len(name) == 0 {
-			name = key[1]
+		// Populate this set of attributes for this host, overwriting if it already exists.
+		if hosts[key[1]] == nil {
+			hosts[key[1]] = make(map[int]string)
 		}
-
-		// Populate this set of host attributes.
-		sets[num] = value
+		hosts[key[1]][setN] = value
 	}
 
-	for _, set := range sets {
-		records = append(records, &DatasourceRecord{
-			Hostname:   name,
-			Attributes: set,
-		})
+	for name, sets := range hosts {
+		for _, set := range sets {
+			records = append(records, &DatasourceRecord{
+				Hostname:   name,
+				Attributes: set,
+			})
+		}
 	}
 
 	return records
