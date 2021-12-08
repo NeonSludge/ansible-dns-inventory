@@ -266,3 +266,5 @@ $ dns-inventory -attrs -format yaml-flow
 
 - [x] Implement key-value stores support (etcd, Consul, etc.).
 - [x] Support using `ansible-dns-inventory` as a library.
+- [ ] Support more datasource types.
+- [ ] Add editor mode for some of the datasources.
