@@ -13,9 +13,6 @@ x-variables:
     image: wbitt/network-multitool
     volumes:
       - ../:/app
-    networks:
-      public:
-        ipv4_address: 172.38.0.250
   flag_initial_cluster_token: &flag_initial_cluster_token '--initial-cluster-token=mys3cr3ttok3n'
   common_settings: &common_settings
       image: quay.io/coreos/etcd:v3.5.9
@@ -32,13 +29,6 @@ networks:
         - subnet: 172.38.0.0/24
           gateway: 172.38.0.1
 
-# volumes:
-#   postgresql-data:
-#     name: pdns-postgresql-data
-#     driver: local
-#   pda-data:
-#     name: pdns-pda-data
-#     driver: local
 
 services:
   dns-server:
@@ -62,6 +52,9 @@ services:
   multitool-dns:
     <<: *multitool_settings
     profiles: ["dns", "tools"]
+    networks:
+      public:
+        ipv4_address: 172.38.0.250
     environment:
       - HTTP_PORT=1180 
       - HTTPS_PORT=11443
@@ -70,6 +63,9 @@ services:
   multitool-etcd:
     <<: *multitool_settings
     profiles: ["etcd", "tools"]
+    networks:
+      public:
+        ipv4_address: 172.38.0.249
     environment:
       - HTTP_PORT=1180 
       - HTTPS_PORT=11443

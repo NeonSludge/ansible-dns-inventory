@@ -93,7 +93,7 @@ help:
 _default:
 	if [ '$(exec)' ]; then \
 		COMPOSE_PROFILES=tools docker compose -f docker/docker-compose.yml up -d; \
-		docker compose exec -it -f docker/docker-compose.yml multitool -v "$(CUR_DIR):/app" exec -it -c '$(exec)'; \
+		docker compose exec -it -f docker/docker-compose.yml multitool-dns -v "$(CUR_DIR):/app" exec -it -c '$(exec)'; \
 	else \
 		make help; \
 	fi
