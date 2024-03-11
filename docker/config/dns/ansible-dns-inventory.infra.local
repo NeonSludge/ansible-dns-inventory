@@ -1,0 +1,59 @@
+$TTL    1d 
+; 
+;default expiration time (in seconds) of all RRs without their own 
+;TTL value
+@       IN      SOA     ns1.infra.local. root.infra.local. (
+                        10                ; Serial
+                        1d               ; Refresh
+                        1h               ; Retry 
+                        1w               ; Expire
+                        1h)              ; Negative Cache TTL
+; name servers - NS records     IN      
+                                  NS      ns1.infra.local.  ; name servers - A records
+ns1                   A      172.38.0.5
+                      TXT    "OS=linux;ENV=dev;ROLE=platform;SRV=nameservers;VARS=NS=first,START=true"
+etcd-1                A      172.38.0.8
+                      TXT    "OS=linux;ENV=dev;ROLE=platform;SRV=dbs;VARS=ETCD_VARS=first,START=true"
+etcd-2                A      172.38.0.9
+                      TXT    "OS=linux;ENV=dev;ROLE=platform;SRV=dbs;VARS=ETCD_VARS=second,START=true"
+etcd-3                A      172.38.0.10
+                      TXT    "OS=linux;ENV=dev;ROLE=platform;SRV=dbs;VARS=ETCD_VARS=third,START=true"
+bastion               A      172.38.0.20
+                      TXT    "OS=linux;ENV=dev;ROLE=platform;SRV=tools;VARS=key1=value1,key2=value2"
+master-1              A      172.38.0.21
+                      TXT    "OS=linux;ENV=dev;ROLE=k8s;SRV=controlplane;VARS=key1=value1,key2=value2"
+master-2              A      172.38.0.22
+                      TXT    "OS=linux;ENV=dev;ROLE=k8s;SRV=controlplane;VARS=key1=value1,key2=value2"
+master-3              A      172.38.0.23
+                      TXT    "OS=linux;ENV=dev;ROLE=k8s;SRV=controlplane;VARS=key1=value1,key2=value2"
+ingress-1             A      172.38.0.25
+                      TXT    "OS=linux;ENV=dev;ROLE=k8s;SRV=ingresses;VARS=key1=value1,key2=value2"
+ingress-2             A      172.38.0.26
+                      TXT    "OS=linux;ENV=dev;ROLE=k8s;SRV=ingresses;VARS=key1=value1,key2=value2"
+ingress-3             A      172.38.0.27
+                      TXT    "OS=linux;ENV=dev;ROLE=k8s;SRV=ingresses;VARS=key1=value1,key2=value2"
+worker-1              A      172.38.0.30
+                      TXT    "OS=linux;ENV=dev;ROLE=k8s;SRV=workers;VARS=key1=value1,key2=value2"
+worker-2              A      172.38.0.31
+                      TXT    "OS=linux;ENV=dev;ROLE=k8s;SRV=workers;VARS=key1=value1,key2=value2"
+worker-3              A      172.38.0.32
+                      TXT    "OS=linux;ENV=dev;ROLE=k8s;SRV=workers;VARS=key1=value1,key2=value2"
+worker-4              A      172.38.0.33
+                      TXT    "OS=linux;ENV=dev;ROLE=k8s;SRV=workers;VARS=key1=value1,key2=value2"
+worker-5              A      172.38.0.34
+                      TXT    "OS=linux;ENV=dev;ROLE=k8s;SRV=workers;VARS=key1=value1,key2=value2"
+observability-1       A      172.38.0.50
+                      TXT    "OS=linux;ENV=dev;ROLE=k8s;SRV=observability;VARS=key1=value1,key2=value2"
+observability-2       A      172.38.0.51
+                      TXT    "OS=linux;ENV=dev;ROLE=k8s;SRV=observability;VARS=key1=value1,key2=value2"
+observability-3       A      172.38.0.52
+                      TXT    "OS=linux;ENV=dev;ROLE=k8s;SRV=observability;VARS=key1=value1,key2=value2"
+logging-1             A      172.38.0.100
+                      TXT    "OS=linux;ENV=dev;ROLE=k8s;SRV=logs;VARS=key1=value1,key2=value2"
+logging-2             A      172.38.0.101
+                      TXT    "OS=linux;ENV=dev;ROLE=k8s;SRV=logs;VARS=key1=value1,key2=value2"
+logging-3             A      172.38.0.102
+                      TXT    "OS=linux;ENV=dev;ROLE=k8s;SRV=logs;VARS=key1=value1,key2=value2"
+multitool             A      172.38.0.250
+                      TXT    "OS=linux;ENV=dev;ROLE=platform;SRV=tools;VARS=key1=value1,key2=value2"
+

@@ -1,0 +1,45 @@
+# Datasource type. Environment variable: ADI_DATASOURCE
+datasource: "dns"
+dns:
+   # DNS datasource configuration.
+  server: "172.38.0.5:53"
+  timeout: "120s"
+  zones:
+    - infra.local.
+etcd:
+  endpoints:
+    - 172.38.0.8:2379
+    - 172.38.0.9:2379
+    - 172.38.0.10:2379
+  tls:
+    insecure: true
+# Host record parsing configuration.
+txt:
+  # Key/value pair parsing configuration.
+  kv:
+    # Separator between k/v pairs found in TXT records. Environment variable: ADI_TXT_KV_SEPARATOR
+    separator: ";"
+    # Separator between a key and a value. Environment variable: ADI_TXT_KV_EQUALSIGN
+    equalsign: "="
+  # Host variables parsing configuration.
+  vars:
+    # Enable host variables support. Environment variable: ADI_TXT_VARS_ENABLED
+    enabled: false
+    # Separator between k/v pairs found in the host variables attribute. Environment variable: ADI_TXT_VARS_SEPARATOR
+    separator: ","
+    # Separator between a key and a value. Environment variable: ADI_TXT_VARS_EQUALSIGN
+    equalsign: "="
+  # Host attributes parsing configuration.
+  keys:
+    # Separator between elements of an Ansible group name. Environment variable: ADI_TXT_KEYS_SEPARATOR
+    separator: "_"
+    # Key name of the attribute containing the host operating system identifier. Environment variable: ADI_TXT_KEYS_OS
+    os: "OS"
+    # Key name of the attribute containing the host environment identifier. Environment variable: ADI_TXT_KEYS_ENV
+    env: "ENV"
+    # Key name of the attribute containing the host role identifier. Environment variable: ADI_TXT_KEYS_ROLE
+    role: "ROLE"
+    # Key name of the attribute containing the host service identifier. Environment variable: ADI_TXT_KEYS_SRV
+    srv: "SRV"
+    # Key name of the attribute containing the host variables. Environment variable: ADI_TXT_KEYS_VARS
+    vars: "VARS"

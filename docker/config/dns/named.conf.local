@@ -1,0 +1,4 @@
+zone "infra.local" {    
+type master;    
+file "/etc/bind/zones/ansible-dns-inventory.infra.local";
+};
