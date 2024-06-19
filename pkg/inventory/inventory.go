@@ -175,6 +175,54 @@ func (i *Inventory) ParseAttributes(raw string) (*HostAttributes, error) {
 	return attrs, nil
 }
 
+// RenderAttributes constructs a string representation of the HostAttributes struct.
+func (i *Inventory) RenderAttributes(attributes *HostAttributes) (string, error) {
+	cfg := i.Config
+
+	attrString := strings.Builder{}
+
+	if err := i.Validator.Struct(attributes); err != nil {
+		return "", errors.Wrap(err, "attribute validation error")
+	}
+
+	attrs := [][]string{{cfg.Txt.Keys.Os, attributes.OS}, {cfg.Txt.Keys.Env, attributes.Env}, {cfg.Txt.Keys.Role, attributes.Role}, {cfg.Txt.Keys.Srv, attributes.Srv}, {cfg.Txt.Keys.Vars, attributes.Vars}}
+
+	for i, attr := range attrs {
+		attrString.WriteString(attr[0])
+		attrString.WriteString(cfg.Txt.Kv.Equalsign)
+		attrString.WriteString(attr[1])
+
+		if i != len(attrs)-1 {
+			attrString.WriteString(cfg.Txt.Kv.Separator)
+		}
+	}
+
+	return attrString.String(), nil
+}
+
+// PublishHosts publishes host records via the datasource.
+func (i *Inventory) PublishHosts(hosts map[string][]*HostAttributes) error {
+	log := i.Logger
+
+	records := []*DatasourceRecord{}
+
+	for hostname, attrsList := range hosts {
+		for _, attrs := range attrsList {
+			if attrString, err := i.RenderAttributes(attrs); err == nil {
+				records = append(records, &DatasourceRecord{
+					Hostname:   hostname,
+					Attributes: attrString,
+				})
+			} else {
+				log.Warnf("[%s] skipping host record: %v", hostname, err)
+				continue
+			}
+		}
+	}
+
+	return i.Datasource.PublishRecords(records)
+}
+
 // New creates an instance of the DNS inventory with user-supplied configuration.
 func New(cfg *Config) (*Inventory, error) {
 	// Setup package global state

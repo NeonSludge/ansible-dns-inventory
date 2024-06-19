@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 
+	"gopkg.in/yaml.v2"
+
 	"github.com/NeonSludge/ansible-dns-inventory/internal/build"
 	"github.com/NeonSludge/ansible-dns-inventory/internal/config"
 	"github.com/NeonSludge/ansible-dns-inventory/internal/logger"
@@ -20,7 +22,8 @@ func main() {
 	groupsFlag := flag.Bool("groups", false, "export groups")
 	treeFlag := flag.Bool("tree", false, "export raw inventory tree")
 	formatFlag := flag.String("format", "yaml", "select export format, if available")
-	hostFlag := flag.String("host", "", "a stub for Ansible")
+	hostFlag := flag.String("host", "", "produce a JSON dictionary of host variables for Ansible")
+	importFlag := flag.String("import", "", "import host records from file")
 	versionFlag := flag.Bool("version", false, "display ansible-dns-inventory version and build info")
 	flag.Parse()
 
@@ -47,7 +50,25 @@ func main() {
 	}
 	defer dnsInventory.Datasource.Close()
 
-	if len(*hostFlag) == 0 {
+	if len(*importFlag) > 0 {
+		hosts := make(map[string][]*inventory.HostAttributes)
+
+		importFile, err := os.ReadFile(*importFlag)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		err = yaml.Unmarshal(importFile, hosts)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		log.Infof("importing hosts from file: %s", *importFlag)
+
+		if err := dnsInventory.PublishHosts(hosts); err != nil {
+			log.Fatal(err)
+		}
+	} else if len(*hostFlag) == 0 {
 		var bytes []byte
 		var err error
 

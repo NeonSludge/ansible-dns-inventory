@@ -12,6 +12,7 @@ A CLI tool (and a library) that processes sets of host attributes stored as DNS 
 - **(DNS data source)** two modes of operation: zone transfers and regular DNS queries.
 - **(DNS data source)** TSIG support for zone transfers.
 - **(Etcd data source)** authentication and mTLS support.
+- **(Etcd data source)** importing host records from a YAML file.
 - Unlimited number and length of inventory tree branches.
 - Predictable and stable inventory structure.
 - Multiple records per host supported.
@@ -23,21 +24,23 @@ A CLI tool (and a library) that processes sets of host attributes stored as DNS 
 ```txt
 Usage of dns-inventory:
   -attrs
-        export host attributes
+    	export host attributes
   -format string
-        select export format, if available (default "yaml")
+    	select export format, if available (default "yaml")
   -groups
-        export groups
+    	export groups
   -host string
-        produce a JSON dictionary of host variables for Ansible
+    	produce a JSON dictionary of host variables for Ansible
   -hosts
-        export hosts
+    	export hosts
+  -import string
+    	import host records from file
   -list
-        produce a JSON inventory for Ansible
+    	produce a JSON inventory for Ansible
   -tree
-        export raw inventory tree
+    	export raw inventory tree
   -version
-        display ansible-dns-inventory version and build info
+    	display ansible-dns-inventory version and build info
 ```
 
 ## Prerequisites
@@ -142,7 +145,7 @@ You create a key/value pair where the value is formatted the same way as with th
 
 
 
-### Host attributes (default key names)
+### Host attributes (default keys)
 
 | Key  | Description                                                                                                                                                 |
 | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -152,8 +155,8 @@ You create a key/value pair where the value is formatted the same way as with th
 | SRV  | Host service identifier(s). This will be split further using the `txt.keys.separator` to produce a hierarchy of groups. Required. Can also be a comma-delimited list. |
 | VARS | Optional host variables.                                                                                                                                    |
 
-All key names and separators are customizable via `ansible-dns-inventory`'s config file.
-Key values are validated and can only contain numbers and letters of the Latin alphabet, except for the service identifier(s) which can also contain the `txt.keys.separator` symbol.
+All keys and separators are customizable via `ansible-dns-inventory`'s config file.
+Values are validated and can only contain numbers and letters of the Latin alphabet, except for the service identifier(s) which can also contain the `txt.keys.separator` symbol.
 
 ### Host variables
 
@@ -262,9 +265,38 @@ $ dns-inventory -attrs -format yaml-flow
 ...
 ```
 
+## Import mode
+
+Some `ansible-dns-inventory` datasources support importing host records from a YAML file. These currently include:
+- etcd datasource
+
+To populate one of these datasources with host records, first create a YAML file with the same structure as the `-attrs` export mode output:
+```
+# cat import.yaml
+app01.infra.local:
+- ENV: dev
+  OS: linux
+  ROLE: app
+  SRV: tomcat_backend_auth
+  VARS: ansible_host=10.0.0.1
+app02.infra.local:
+- ENV: dev
+  OS: linux
+  ROLE: app
+  SRV: tomcat_backend_auth
+  VARS: ansible_host=10.0.0.2
+```   
+
+Then run `ansible-dns-inventory` in the import mode:
+```
+dns-inventory -import ./import.yaml
+```
+
+WARNING: while only default host attribute keys (`OS/ENV/ROLE/SRV/VARS`) are supported in the input file itself, the actual records will use your custom keys if set in the configuration.
+
 ## Roadmap
 
 - [x] Implement key-value stores support (etcd, Consul, etc.).
 - [x] Support using `ansible-dns-inventory` as a library.
+- [!] Implement import mode for some of the datasources. (implemented for the etcd datasource)
 - [ ] Support more datasource types.
-- [ ] Add editor mode for some of the datasources.

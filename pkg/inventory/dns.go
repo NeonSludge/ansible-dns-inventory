@@ -73,6 +73,26 @@ func (d *DNSDatasource) makeFQDN(host string, zone string) string {
 	return strings.TrimPrefix(dns.Fqdn(name+"."+domain), ".")
 }
 
+// findZone selects a matching zone from the datasource configuration based on the hostname.
+func (d *DNSDatasource) findZone(host string) (string, error) {
+	cfg := d.Config
+	var zone string
+
+	// Try finding a matching zone in the configuration.
+	for _, z := range cfg.DNS.Zones {
+		if strings.HasSuffix(strings.Trim(host, "."), strings.Trim(z, ".")) {
+			zone = z
+			break
+		}
+	}
+
+	if len(zone) == 0 {
+		return zone, errors.New("no matching zones found in config file")
+	}
+
+	return zone, nil
+}
+
 // getZone acquires TXT records for all hosts in a specific zone.
 func (d *DNSDatasource) getZone(zone string) ([]dns.RR, error) {
 	cfg := d.Config
@@ -148,23 +168,14 @@ func (d *DNSDatasource) GetAllRecords() ([]*DatasourceRecord, error) {
 func (d *DNSDatasource) GetHostRecords(host string) ([]*DatasourceRecord, error) {
 	cfg := d.Config
 	records := make([]*DatasourceRecord, 0)
-	var err error
 
 	if cfg.DNS.Notransfer.Enabled {
 		// No-transfer mode is enabled.
-		var zone string
 		var rrs []dns.RR
 
-		// Determine which zone we are working with.
-		for _, z := range cfg.DNS.Zones {
-			if strings.HasSuffix(strings.Trim(host, "."), strings.Trim(z, ".")) {
-				zone = z
-				break
-			}
-		}
-
-		if len(zone) == 0 {
-			return nil, errors.New("failed to determine zone from hostname")
+		zone, err := d.findZone(host)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to determine zone from hostname")
 		}
 
 		// Get no-transfer host records.
@@ -191,6 +202,14 @@ func (d *DNSDatasource) GetHostRecords(host string) ([]*DatasourceRecord, error)
 	}
 
 	return records, nil
+}
+
+// PublishRecords writes host records to the datasource.
+func (d *DNSDatasource) PublishRecords(records []*DatasourceRecord) error {
+	log := d.Logger
+
+	log.Warn("Publishing records has not been implemented for the DNS datasource yet.")
+	return nil
 }
 
 // Close shuts down the datasource and performs other housekeeping.

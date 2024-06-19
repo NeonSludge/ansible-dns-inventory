@@ -208,3 +208,104 @@ func TestInventory_ParseAttributes(t *testing.T) {
 		})
 	}
 }
+
+func TestInventory_RenderAttributes(t *testing.T) {
+	cfg := &Config{}
+	cfg.Txt.Kv.Separator = ";"
+	cfg.Txt.Kv.Equalsign = "="
+	cfg.Txt.Keys.Os = "OS"
+	cfg.Txt.Keys.Env = "ENV"
+	cfg.Txt.Keys.Role = "ROLE"
+	cfg.Txt.Keys.Srv = "SRV"
+	cfg.Txt.Keys.Vars = "VARS"
+
+	validator := validator.New()
+	validator.RegisterValidation("notblank", validators.NotBlank)
+	validator.RegisterValidation("safelist", isSafeList)
+	validator.RegisterValidation("safelistsep", isSafeListWithSeparator)
+
+	testInventory := &Inventory{
+		Validator: validator,
+		Config:    cfg,
+	}
+
+	type args struct {
+		attributes *HostAttributes
+	}
+	tests := []struct {
+		name    string
+		i       *Inventory
+		args    args
+		want    string
+		wantErr bool
+	}{
+		{
+			name: "valid",
+			i:    testInventory,
+			args: args{
+				attributes: &HostAttributes{
+					OS:   "testos",
+					Env:  "testenv",
+					Role: "testrole",
+					Srv:  "testsrv",
+					Vars: "testvar=testvalue",
+				},
+			},
+			want:    "OS=testos;ENV=testenv;ROLE=testrole;SRV=testsrv;VARS=testvar=testvalue",
+			wantErr: false,
+		},
+		{
+			name: "valid-no-vars",
+			i:    testInventory,
+			args: args{
+				attributes: &HostAttributes{
+					OS:   "testos",
+					Env:  "testenv",
+					Role: "testrole",
+					Srv:  "testsrv",
+				},
+			},
+			want:    "OS=testos;ENV=testenv;ROLE=testrole;SRV=testsrv;VARS=",
+			wantErr: false,
+		},
+		{
+			name: "valid-no-vars-no-srv",
+			i:    testInventory,
+			args: args{
+				attributes: &HostAttributes{
+					OS:   "testos",
+					Env:  "testenv",
+					Role: "testrole",
+				},
+			},
+			want:    "OS=testos;ENV=testenv;ROLE=testrole;SRV=;VARS=",
+			wantErr: false,
+		},
+		{
+			name: "invalid-attribute",
+			i:    testInventory,
+			args: args{
+				attributes: &HostAttributes{
+					OS:   "testos",
+					Env:  "testenv",
+					Role: "testrole",
+					Srv:  "%",
+				},
+			},
+			want:    "",
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.i.RenderAttributes(tt.args.attributes)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Inventory.RenderAttributes() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Inventory.RenderAttributes() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

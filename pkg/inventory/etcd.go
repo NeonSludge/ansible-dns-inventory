@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -68,6 +69,26 @@ func (e *EtcdDatasource) processKVs(kvs []*mvccpb.KeyValue) []*DatasourceRecord 
 	return records
 }
 
+// findZone selects a matching zone from the datasource configuration based on the hostname.
+func (e *EtcdDatasource) findZone(host string) (string, error) {
+	cfg := e.Config
+	var zone string
+
+	// Try finding a matching zone in the configuration.
+	for _, z := range cfg.Etcd.Zones {
+		if strings.HasSuffix(strings.Trim(host, "."), strings.Trim(z, ".")) {
+			zone = z
+			break
+		}
+	}
+
+	if len(zone) == 0 {
+		return zone, errors.New("no matching zones found in config file")
+	}
+
+	return zone, nil
+}
+
 // getPrefix acquires all key/value records for a specific prefix.
 func (e *EtcdDatasource) getPrefix(prefix string) ([]*mvccpb.KeyValue, error) {
 	cfg := e.Config
@@ -79,6 +100,25 @@ func (e *EtcdDatasource) getPrefix(prefix string) ([]*mvccpb.KeyValue, error) {
 	}
 
 	return resp.Kvs, nil
+}
+
+// putRecord publishes a host record via the datasource.
+func (e *EtcdDatasource) putRecord(record *DatasourceRecord, count int) error {
+	cfg := e.Config
+
+	zone, err := e.findZone(record.Hostname)
+	if err != nil {
+		return errors.Wrap(err, "failed to determine zone from hostname")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), cfg.Etcd.Timeout)
+	_, err = e.Client.Put(ctx, fmt.Sprintf("%s/%s/%d", zone, record.Hostname, count), record.Attributes)
+	cancel()
+	if err != nil {
+		return errors.Wrap(err, "etcd request failure")
+	}
+
+	return nil
 }
 
 // GetAllRecords acquires all available host records.
@@ -102,19 +142,9 @@ func (e *EtcdDatasource) GetAllRecords() ([]*DatasourceRecord, error) {
 
 // GetHostRecords acquires all available records for a specific host.
 func (e *EtcdDatasource) GetHostRecords(host string) ([]*DatasourceRecord, error) {
-	cfg := e.Config
-	var zone string
-
-	// Determine which zone we are working with.
-	for _, z := range cfg.Etcd.Zones {
-		if strings.HasSuffix(strings.Trim(host, "."), strings.Trim(z, ".")) {
-			zone = z
-			break
-		}
-	}
-
-	if len(zone) == 0 {
-		return nil, errors.New("failed to determine zone from hostname")
+	zone, err := e.findZone(host)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to determine zone from hostname")
 	}
 
 	prefix := zone + "/" + host
@@ -124,6 +154,25 @@ func (e *EtcdDatasource) GetHostRecords(host string) ([]*DatasourceRecord, error
 	}
 
 	return e.processKVs(kvs), nil
+}
+
+// PublishRecords writes host records to the datasource.
+func (e *EtcdDatasource) PublishRecords(records []*DatasourceRecord) error {
+	counts := map[string]int{}
+
+	for _, record := range records {
+		if _, ok := counts[record.Hostname]; ok {
+			counts[record.Hostname]++
+		} else {
+			counts[record.Hostname] = 0
+		}
+
+		if err := e.putRecord(record, counts[record.Hostname]); err != nil {
+			return errors.Wrap(err, "failed to publish a host record")
+		}
+	}
+
+	return nil
 }
 
 // Close shuts down the datasource and performs other housekeeping.

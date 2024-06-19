@@ -141,6 +141,8 @@ type (
 		GetAllRecords() ([]*DatasourceRecord, error)
 		// GetHostRecords returns all records for a specific host.
 		GetHostRecords(host string) ([]*DatasourceRecord, error)
+		// PublishRecords writes host records to the datasource.
+		PublishRecords(records []*DatasourceRecord) error
 		// Close closes datasource clients and performs other housekeeping.
 		Close()
 	}
@@ -170,15 +172,15 @@ type (
 	// HostAttributes represents host attributes found in TXT records.
 	HostAttributes struct {
 		// Host operating system identifier.
-		OS string `validate:"required,notblank,alphanum"`
+		OS string `validate:"required,notblank,alphanum" yaml:"OS"`
 		// Host environment identifier.
-		Env string `validate:"required,notblank,alphanum"`
+		Env string `validate:"required,notblank,alphanum" yaml:"ENV"`
 		// Host role identifier.
-		Role string `validate:"required,notblank,safelist"`
+		Role string `validate:"required,notblank,safelist" yaml:"ROLE"`
 		// Host service identifier.
-		Srv string `validate:"safelistsep"`
+		Srv string `validate:"safelistsep" yaml:"SRV"`
 		// Host variables
-		Vars string `validate:"printascii"`
+		Vars string `validate:"printascii" yaml:"VARS"`
 	}
 
 	// AnsibleGroup is an Ansible group ready to be marshalled into a JSON representation.
