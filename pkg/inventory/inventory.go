@@ -224,7 +224,7 @@ func (i *Inventory) PublishHosts(hosts map[string][]*HostAttributes) error {
 }
 
 // New creates an instance of the DNS inventory with user-supplied configuration.
-func New(cfg *Config) (*Inventory, error) {
+func New(cfg *Config, log Logger) (*Inventory, error) {
 	// Setup package global state
 	adiHostAttributeNames = make(map[string]string)
 	adiHostAttributeNames["OS"] = cfg.Txt.Keys.Os
@@ -234,36 +234,37 @@ func New(cfg *Config) (*Inventory, error) {
 	adiHostAttributeNames["VARS"] = cfg.Txt.Keys.Vars
 
 	// Initialize logger.
-	if cfg.Logger == nil {
-		l, err := logger.New("info")
-		if err != nil {
+	if log == nil {
+		var err error
+		if log, err = logger.New("info"); err != nil {
 			return nil, errors.Wrap(err, "logger initialization failure")
 		}
-		cfg.Logger = l
+
+		log.Warn("no custom logger passed to inventory.New(), using defaults")
 	}
 
 	// Initialize datasource.
-	ds, err := NewDatasource(cfg)
+	ds, err := NewDatasource(cfg, log)
 	if err != nil {
 		return nil, errors.Wrap(err, "datasource initialization failure")
 	}
 
 	// Initialize struct validator.
-	validator := validator.New()
-	validator.RegisterValidation("notblank", validators.NotBlank)
-	validator.RegisterValidation("safelist", isSafeList)
-	validator.RegisterValidation("safelistsep", isSafeListWithSeparator)
+	val := validator.New()
+	val.RegisterValidation("notblank", validators.NotBlank)
+	val.RegisterValidation("safelist", isSafeList)
+	val.RegisterValidation("safelistsep", isSafeListWithSeparator)
 
-	i := &Inventory{
+	inventory := &Inventory{
 		Config:    cfg,
-		Logger:    cfg.Logger,
-		Validator: validator,
+		Logger:    log,
+		Validator: val,
 
 		Datasource: ds,
 		Tree:       NewTree(),
 	}
 
-	return i, nil
+	return inventory, nil
 }
 
 // NewDefault creates an instance of the DNS inventory with the default configuration.
@@ -274,5 +275,5 @@ func NewDefault() (*Inventory, error) {
 		return nil, errors.Wrap(err, "defaults initialization failure")
 	}
 
-	return New(cfg)
+	return New(cfg, nil)
 }

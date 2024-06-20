@@ -213,7 +213,7 @@ func makeEtcdTLSConfig(cfg *Config) (*tls.Config, error) {
 }
 
 // NewEtcdDatasource creates an etcd datasource.
-func NewEtcdDatasource(cfg *Config) (*EtcdDatasource, error) {
+func NewEtcdDatasource(cfg *Config, log Logger) (*EtcdDatasource, error) {
 	// Etcd client configuration
 	clientCfg := etcdv3.Config{
 		Endpoints:   cfg.Etcd.Endpoints,
@@ -245,7 +245,7 @@ func NewEtcdDatasource(cfg *Config) (*EtcdDatasource, error) {
 
 	return &EtcdDatasource{
 		Config: cfg,
-		Logger: cfg.Logger,
+		Logger: log,
 		Client: client,
 	}, nil
 }

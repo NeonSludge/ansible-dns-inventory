@@ -23,9 +23,6 @@ type (
 
 	// Config represents the main inventory configuration.
 	Config struct {
-		// A logger for the inventory.
-		// By default, the global zap.SugaredLogger is used.
-		Logger Logger
 		// Datasource type.
 		// Currently supported: dns, etcd.
 		Datasource string `mapstructure:"datasource" default:"dns"`

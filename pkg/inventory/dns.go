@@ -216,10 +216,10 @@ func (d *DNSDatasource) PublishRecords(records []*DatasourceRecord) error {
 func (d *DNSDatasource) Close() {}
 
 // NewDNSDatasource creates a DNS datasource.
-func NewDNSDatasource(cfg *Config) (*DNSDatasource, error) {
+func NewDNSDatasource(cfg *Config, log Logger) (*DNSDatasource, error) {
 	return &DNSDatasource{
 		Config: cfg,
-		Logger: cfg.Logger,
+		Logger: log,
 		Client: &dns.Client{
 			Timeout: cfg.DNS.Timeout,
 		},

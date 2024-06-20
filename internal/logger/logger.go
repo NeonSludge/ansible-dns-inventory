@@ -1,39 +1,38 @@
 package logger
 
 import (
-	"encoding/json"
 	"os"
 
 	"github.com/mattn/go-isatty"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 func New(level string) (*zap.SugaredLogger, error) {
-	var cfg zap.Config
-	enc := "json"
-
-	if isatty.IsTerminal(os.Stdout.Fd()) {
-		enc = "console"
+	zapLevel, err := zap.ParseAtomicLevel(level)
+	if err != nil {
+		return nil, errors.Wrap(err, "log level parsing error")
 	}
 
-	cfgJSON := []byte(`{
-		"development": false,
-	  "level": "` + level + `",
-	  "encoding": "` + enc + `",
-	  "outputPaths": ["stderr"],
-	  "errorOutputPaths": ["stderr"],
-	  "encoderConfig": {
-			"timeKey": "timestamp",
-			"timeEncoder": "iso8601",
-	    "messageKey": "message",
-	    "levelKey": "level",
-	    "levelEncoder": "capital"
-	  }
-	}`)
+	encoding := "json"
+	if isatty.IsTerminal(os.Stdout.Fd()) {
+		encoding = "console"
+	}
 
-	if err := json.Unmarshal(cfgJSON, &cfg); err != nil {
-		return nil, errors.Wrap(err, "json unmarshalling error")
+	cfg := zap.Config{
+		Development:      false,
+		Level:            zapLevel,
+		Encoding:         encoding,
+		OutputPaths:      []string{"stderr"},
+		ErrorOutputPaths: []string{"stderr"},
+		EncoderConfig: zapcore.EncoderConfig{
+			TimeKey:     "timestamp",
+			EncodeTime:  zapcore.ISO8601TimeEncoder,
+			MessageKey:  "message",
+			LevelKey:    "level",
+			EncodeLevel: zapcore.CapitalLevelEncoder,
+		},
 	}
 
 	logger, err := cfg.Build()

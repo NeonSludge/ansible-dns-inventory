@@ -40,11 +40,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Pass the global logger to the inventory library.
-	cfg.Logger = log
-
 	// Initialize a new inventory.
-	dnsInventory, err := inventory.New(cfg)
+	dnsInventory, err := inventory.New(cfg, log)
 	if err != nil {
 		log.Fatal(err)
 	}
