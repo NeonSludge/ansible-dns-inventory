@@ -175,7 +175,7 @@ func (d *DNSDatasource) GetHostRecords(host string) ([]*DatasourceRecord, error)
 
 		zone, err := d.findZone(host)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to determine zone from hostname")
+			return nil, errors.Wrapf(err, "%s: failed to find zone", host)
 		}
 
 		// Get no-transfer host records.

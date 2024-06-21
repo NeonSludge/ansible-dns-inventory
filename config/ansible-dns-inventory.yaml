@@ -69,6 +69,12 @@ etcd:
       path: ""
       # PEM-formatted private key (YAML multiline). Environment variable: ADI_ETCD_TLS_KEY_PEM
       pem: ""
+  # Etcd datasource import mode configuration.
+  import:
+    # Clear all existing host records before importing records from file. Environment variable: ADI_ETCD_IMPORT_CLEAR
+    clear: true
+    # Batch size used when pushing host records to etcd. Should not exceed the maximum number of operations permitted in a etcd transaction (max-txn-ops). Environment variable: ADI_ETCD_IMPORT_BATCH
+    batch: 128
 # Host record parsing configuration.
 txt:
   # Key/value pair parsing configuration.

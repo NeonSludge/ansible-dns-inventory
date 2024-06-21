@@ -95,6 +95,14 @@ type (
 					PEM  string `mapstructure:"pem" default:""`
 				} `mapstructure:"key"`
 			} `mapstructure:"tls"`
+			// Etcd datasource import mode configuration.
+			Import struct {
+				// Clear all existing host records before importing records from file.
+				Clear bool `mapstructure:"clear" default:"true"`
+				// Batch size used when pushing host records to etcd.
+				// Should not exceed the maximum number of operations permitted in a etcd transaction (max-txn-ops).
+				Batch int `mapstructure:"batch" default:"128"`
+			} `mapstructure:"import"`
 		} `mapstructure:"etcd"`
 		// Host records parsing configuration.
 		Txt struct {

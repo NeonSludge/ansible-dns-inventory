@@ -42,6 +42,8 @@ func configKeys() []string {
 		"etcd.tls.certificate.pem",
 		"etcd.tls.key.path",
 		"etcd.tls.key.pem",
+		"etcd.import.clear",
+		"etcd.import.batch",
 		"txt.kv.separator",
 		"txt.kv.equalsign",
 		"txt.vars.enabled",

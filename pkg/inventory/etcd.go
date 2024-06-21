@@ -102,20 +102,25 @@ func (e *EtcdDatasource) getPrefix(prefix string) ([]*mvccpb.KeyValue, error) {
 	return resp.Kvs, nil
 }
 
-// putRecord publishes a host record via the datasource.
-func (e *EtcdDatasource) putRecord(record *DatasourceRecord, count int) error {
+// execTxn executes etcd operations in a transaction.
+func (e *EtcdDatasource) execTxn(ops []etcdv3.Op) error {
 	cfg := e.Config
 
-	zone, err := e.findZone(record.Hostname)
-	if err != nil {
-		return errors.Wrap(err, "failed to determine zone from hostname")
-	}
+	var batch []etcdv3.Op
+	for len(ops) > 0 {
+		if len(ops) >= cfg.Etcd.Import.Batch {
+			batch, ops = ops[0:cfg.Etcd.Import.Batch:cfg.Etcd.Import.Batch], ops[cfg.Etcd.Import.Batch:]
+		} else {
+			batch = ops
+			ops = nil
+		}
 
-	ctx, cancel := context.WithTimeout(context.Background(), cfg.Etcd.Timeout)
-	_, err = e.Client.Put(ctx, fmt.Sprintf("%s/%s/%d", zone, record.Hostname, count), record.Attributes)
-	cancel()
-	if err != nil {
-		return errors.Wrap(err, "etcd request failure")
+		ctx, cancel := context.WithTimeout(context.Background(), cfg.Etcd.Timeout)
+		_, err := e.Client.Txn(ctx).Then(batch...).Commit()
+		cancel()
+		if err != nil {
+			return errors.Wrap(err, "etcd request failure")
+		}
 	}
 
 	return nil
@@ -144,7 +149,7 @@ func (e *EtcdDatasource) GetAllRecords() ([]*DatasourceRecord, error) {
 func (e *EtcdDatasource) GetHostRecords(host string) ([]*DatasourceRecord, error) {
 	zone, err := e.findZone(host)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to determine zone from hostname")
+		return nil, errors.Wrapf(err, "%s: failed to find zone", host)
 	}
 
 	prefix := zone + "/" + host
@@ -158,8 +163,17 @@ func (e *EtcdDatasource) GetHostRecords(host string) ([]*DatasourceRecord, error
 
 // PublishRecords writes host records to the datasource.
 func (e *EtcdDatasource) PublishRecords(records []*DatasourceRecord) error {
-	counts := map[string]int{}
+	cfg := e.Config
+	log := e.Logger
 
+	if cfg.Etcd.Import.Clear {
+		if err := e.execTxn([]etcdv3.Op{etcdv3.OpDelete("", etcdv3.WithPrefix())}); err != nil {
+			return err
+		}
+	}
+
+	ops := []etcdv3.Op{}
+	counts := map[string]int{}
 	for _, record := range records {
 		if _, ok := counts[record.Hostname]; ok {
 			counts[record.Hostname]++
@@ -167,9 +181,17 @@ func (e *EtcdDatasource) PublishRecords(records []*DatasourceRecord) error {
 			counts[record.Hostname] = 0
 		}
 
-		if err := e.putRecord(record, counts[record.Hostname]); err != nil {
-			return errors.Wrap(err, "failed to publish a host record")
+		zone, err := e.findZone(record.Hostname)
+		if err != nil {
+			log.Warnf("[%s] skipping host record: %v", record.Hostname, err)
+			continue
 		}
+
+		ops = append(ops, etcdv3.OpPut(fmt.Sprintf("%s/%s/%d", zone, record.Hostname, counts[record.Hostname]), record.Attributes))
+	}
+
+	if err := e.execTxn(ops); err != nil {
+		return err
 	}
 
 	return nil
