@@ -138,6 +138,10 @@ type (
 				Vars string `mapstructure:"vars" default:"VARS"`
 			} `mapstructure:"keys"`
 		} `mapstructure:"txt"`
+		Filter struct {
+			Enabled bool         `mapstructure:"enabled" default:"false"`
+			Filters []HostFilter `mapstructure:"filters"`
+		} `mapstructure:"filter"`
 	}
 
 	// Datasource provides an interface for all supported datasources.
@@ -172,6 +176,23 @@ type (
 		Fatalf(template string, args ...interface{})
 		Debug(args ...interface{})
 		Debugf(template string, args ...interface{})
+	}
+
+	// HostFilter represents a host record filter specification.
+	HostFilter struct {
+		// A host attribute that be evaluated by a filter.
+		// Allowed values include 'host' for the hostname and any of the host attributes except for 'VARS'.
+		// Custom host attribute keys will be expected here if set in the configuration (txt.keys).
+		Key string
+		// A test performed by a filter.
+		// Allowed values:
+		// In: key must match one of the specified values.
+		// NotIn: key must not match any of the specified values.
+		// Regex: key must match one of the regular expressions in the specified values.
+		// NotRegex: key must not match any of the regular expressions in the specified values.
+		Operator string
+		// A list of string values supplied to the test performed by a filter.
+		Values []string
 	}
 
 	// HostAttributes represents host attributes found in TXT records.

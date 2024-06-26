@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"reflect"
 	"regexp"
+	"slices"
 	"strings"
 	"unsafe"
 
@@ -95,6 +96,85 @@ func (a *HostAttributes) UnmarshalYAML(n *yaml.Node) error {
 	return n.Decode(value.Addr().Interface())
 }
 
+// filterHost evaluates host record filters specified in the configuration and determines if a record should be processed by the inventory.
+func (i *Inventory) filterHost(host string, attrs *HostAttributes) (bool, error) {
+	cfg := i.Config
+
+	if !cfg.Filter.Enabled {
+		return true, nil
+	}
+
+	for _, filter := range cfg.Filter.Filters {
+		var value string
+
+		switch filter.Key {
+		case "host":
+			value = host
+		case adiHostAttributeNames["OS"]:
+			value = attrs.OS
+		case adiHostAttributeNames["ENV"]:
+			value = attrs.Env
+		case adiHostAttributeNames["ROLE"]:
+			value = attrs.Role
+		case adiHostAttributeNames["SRV"]:
+			value = attrs.Srv
+		default:
+			return false, errors.Errorf("unknown key: %s", filter.Key)
+		}
+
+		switch strings.ToLower(filter.Operator) {
+		case "in":
+			if slices.Contains(filter.Values, value) {
+				continue
+			} else {
+				return false, nil
+			}
+		case "notin":
+			if !slices.Contains(filter.Values, value) {
+				continue
+			} else {
+				return false, nil
+			}
+		case "regex":
+			var match bool
+
+			for _, exp := range filter.Values {
+				regex := regexp.MustCompile(exp)
+				if regex.MatchString(value) {
+					match = true
+					break
+				}
+			}
+
+			if match {
+				continue
+			} else {
+				return false, nil
+			}
+		case "notregex":
+			var match bool
+
+			for _, exp := range filter.Values {
+				regex := regexp.MustCompile(exp)
+				if regex.MatchString(value) {
+					match = true
+					break
+				}
+			}
+
+			if !match {
+				continue
+			} else {
+				return false, nil
+			}
+		default:
+			return false, errors.Errorf("unknown operator: %s", filter.Operator)
+		}
+	}
+
+	return true, nil
+}
+
 // ImportHosts loads a map of hosts and their attributes into the inventory tree.
 func (i *Inventory) ImportHosts(hosts map[string][]*HostAttributes) {
 	i.Tree.ImportHosts(hosts, i.Config.Txt.Keys.Separator)
@@ -161,6 +241,13 @@ func (i *Inventory) GetHosts() (map[string][]*HostAttributes, error) {
 		attrs, err := i.ParseAttributes(r.Attributes)
 		if err != nil {
 			log.Warnf("[%s] skipping host record: %v", r.Hostname, err)
+			continue
+		}
+
+		if match, err := i.filterHost(r.Hostname, attrs); err != nil {
+			return nil, errors.Wrap(err, "filter processing failure")
+		} else if !match {
+			log.Warnf("[%s] skipping filtered host record", r.Hostname)
 			continue
 		}
 
@@ -242,6 +329,13 @@ func (i *Inventory) PublishHosts(hosts map[string][]*HostAttributes) error {
 
 	for hostname, attrsList := range hosts {
 		for _, attrs := range attrsList {
+			if match, err := i.filterHost(hostname, attrs); err != nil {
+				return errors.Wrap(err, "filter processing failure")
+			} else if !match {
+				log.Warnf("[%s] skipping filtered host record", hostname)
+				continue
+			}
+
 			if attrString, err := i.RenderAttributes(attrs); err == nil {
 				records = append(records, &DatasourceRecord{
 					Hostname:   hostname,

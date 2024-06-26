@@ -55,6 +55,7 @@ func configKeys() []string {
 		"txt.keys.role",
 		"txt.keys.srv",
 		"txt.keys.vars",
+		"filter.enabled",
 	}
 }
 

@@ -105,3 +105,25 @@ txt:
     srv: "SRV"
     # Key name of the attribute containing the host variables. Environment variable: ADI_TXT_KEYS_VARS
     vars: "VARS"
+# Host record filtering configuration.
+filter:
+  # Enable host record filtering. Environment variables: ADI_FILTER_ENABLED.
+  enabled: false
+  # A list of filters. A host record must match all filters in this list to be added to the inventory.
+  filters:
+    - # A host attribute that be evaluated by this filter.
+      # Allowed values include 'host' for the hostname and any of the host attributes except for 'VARS'.
+      # Custom host attribute keys will be expected here if set in the configuration (txt.keys).
+      key: key
+      # A test performed by this filter.
+      # Allowed values:
+      # in: key must match one of the specified values.
+      # notin: key must not match any of the specified values.
+      # regex: key must match one of the regular expressions in the specified values.
+      # notregex: key must not match any of the regular expressions in the specified values.
+      operator: operator
+      # A list of string values supplied to the test performed by this filter.
+      values:
+        - value1
+        - value2
+        - ^regexp1.*$

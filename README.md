@@ -287,16 +287,16 @@ app02.infra.local:
   VARS: ansible_host=10.0.0.2
 ```   
 
+Custom host attribute keys will be expected here if set in the configuration (`txt.keys`).
+
 Then run `ansible-dns-inventory` in the import mode:
 ```
 dns-inventory -import ./import.yaml
 ```
 
-WARNING: while only default host attribute keys (`OS/ENV/ROLE/SRV/VARS`) are supported in the input file itself, the actual records will use your custom keys if set in the configuration.
-
 ## Roadmap
 
 - [x] Implement key-value stores support (etcd, Consul, etc.).
 - [x] Support using `ansible-dns-inventory` as a library.
-- [!] Implement import mode for some of the datasources. (implemented for the etcd datasource)
+- [x] Implement import mode for some of the datasources. (implemented for the etcd datasource)
 - [ ] Support more datasource types.
