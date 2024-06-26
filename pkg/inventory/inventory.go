@@ -2,13 +2,16 @@ package inventory
 
 import (
 	"encoding/json"
+	"reflect"
 	"regexp"
 	"strings"
+	"unsafe"
 
 	"github.com/creasty/defaults"
 	"github.com/go-playground/validator/v10"
 	"github.com/go-playground/validator/v10/non-standard/validators"
 	"github.com/pkg/errors"
+	"gopkg.in/yaml.v3"
 
 	"github.com/NeonSludge/ansible-dns-inventory/internal/logger"
 )
@@ -59,6 +62,37 @@ func (a *HostAttributes) MarshalYAML() (interface{}, error) {
 	attrs[adiHostAttributeNames["VARS"]] = a.Vars
 
 	return attrs, nil
+}
+
+// UnmarshalYAML implements a custom YAML Unmarshaller for host attributes.
+func (a *HostAttributes) UnmarshalYAML(n *yaml.Node) error {
+	t := reflect.TypeOf(*a)
+	fields := make([]reflect.StructField, 0)
+
+	for i := 0; i < t.NumField(); i++ {
+		fields = append(fields, t.Field(i))
+
+		if t.Field(i).Name == "Name" {
+			fields[i].Tag = `yaml:"name"`
+		}
+
+		switch t.Field(i).Name {
+		case "OS":
+			fields[i].Tag = reflect.StructTag(`yaml:"` + adiHostAttributeNames["OS"] + `"`)
+		case "Env":
+			fields[i].Tag = reflect.StructTag(`yaml:"` + adiHostAttributeNames["ENV"] + `"`)
+		case "Role":
+			fields[i].Tag = reflect.StructTag(`yaml:"` + adiHostAttributeNames["ROLE"] + `"`)
+		case "Srv":
+			fields[i].Tag = reflect.StructTag(`yaml:"` + adiHostAttributeNames["SRV"] + `"`)
+		case "Vars":
+			fields[i].Tag = reflect.StructTag(`yaml:"` + adiHostAttributeNames["VARS"] + `"`)
+		}
+	}
+
+	value := reflect.NewAt(reflect.StructOf(fields), unsafe.Pointer(a)).Elem()
+
+	return n.Decode(value.Addr().Interface())
 }
 
 // ImportHosts loads a map of hosts and their attributes into the inventory tree.

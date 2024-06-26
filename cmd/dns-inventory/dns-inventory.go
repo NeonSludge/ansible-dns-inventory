@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 
 	"github.com/NeonSludge/ansible-dns-inventory/internal/build"
 	"github.com/NeonSludge/ansible-dns-inventory/internal/config"
