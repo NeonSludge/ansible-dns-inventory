@@ -215,18 +215,22 @@ type (
 		Children []string `json:"children,omitempty"`
 		// Hosts belonging to this group.
 		Hosts []string `json:"hosts,omitempty"`
+		// Group variables.
+		Vars map[string]interface{} `json:"vars,omitempty"`
 	}
 
 	// Node represents and inventory tree node.
 	Node struct {
 		// Group name.
 		Name string
-		// Group Parent
+		// Group parent
 		Parent *Node `json:"-" yaml:"-"`
 		// Group children.
 		Children []*Node
 		// Hosts belonging to this group.
 		Hosts map[string]bool
+		// Group variables.
+		Vars map[string]interface{}
 	}
 
 	// ExportNode represents an inventory tree node for the tree export mode.
@@ -237,5 +241,7 @@ type (
 		Children []*Node `json:"children" yaml:"children"`
 		// Hosts belonging to this group.
 		Hosts []string `json:"hosts" yaml:"hosts"`
+		// Group variables.
+		Vars map[string]interface{} `json:"vars" yaml:"vars"`
 	}
 )

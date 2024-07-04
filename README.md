@@ -158,6 +158,8 @@ You create a key/value pair where the value is formatted the same way as with th
 All keys and separators are customizable via `ansible-dns-inventory`'s config file.
 Values are validated and can only contain numbers and letters of the Latin alphabet, except for the service identifier(s) which can also contain the `txt.keys.separator` symbol.
 
+All host attributes (except for `VARS`) can be referenced by their keys in Ansible code via the `inventory_attributes` group variable. Its availability doesn't depend on the host variables feature (see below).
+
 ### Host variables
 
 `ansible-dns-inventory` supports passing additional host variables to Ansible via the `VARS` attribute. This feature is disabled by default, you can enable it by setting the `txt.vars.enabled` parameter to `true`.

@@ -24,6 +24,7 @@ func (n *Node) MarshalJSON() ([]byte, error) {
 		Name:     n.Name,
 		Children: n.Children,
 		Hosts:    hosts,
+		Vars:     n.Vars,
 	})
 }
 
@@ -40,6 +41,7 @@ func (n *Node) MarshalYAML() (interface{}, error) {
 		Name:     n.Name,
 		Children: n.Children,
 		Hosts:    hosts,
+		Vars:     n.Vars,
 	}, nil
 }
 
@@ -71,6 +73,18 @@ func (n *Node) ImportHosts(hosts map[string][]*HostAttributes, sep string) {
 
 				// The last service group holds the host.
 				groupNode.AddHost(host)
+
+				if env != ansibleRootGroup {
+					// Add host attributes to the inventory_attributes group variable.
+					groupNode.Vars = map[string]interface{}{
+						"inventory_attributes": map[string]string{
+							adiHostAttributeNames["OS"]:   attr.OS,
+							adiHostAttributeNames["ENV"]:  attr.Env,
+							adiHostAttributeNames["ROLE"]: attr.Role,
+							adiHostAttributeNames["SRV"]:  attr.Srv,
+						},
+					}
+				}
 
 				// Special groups: [root_]<environment>_host, [root_]<environment>_host_<os>
 				envNode.AddChild(env + sep + "host").AddChild(env + sep + "host" + sep + attr.OS).AddHost(host)
@@ -169,7 +183,7 @@ func (n *Node) ExportInventory(inventory map[string]*AnsibleGroup) {
 	sort.Strings(hosts)
 
 	// Put this node into the map.
-	inventory[n.Name] = &AnsibleGroup{Children: children, Hosts: hosts}
+	inventory[n.Name] = &AnsibleGroup{Children: children, Hosts: hosts, Vars: n.Vars}
 
 	// Process other nodes recursively.
 	if len(n.Children) > 0 {
