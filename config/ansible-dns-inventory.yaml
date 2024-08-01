@@ -6,7 +6,7 @@ dns:
   server: "127.0.0.1:53"
   # Network timeout for DNS requests. Environment variable: ADI_DNS_TIMEOUT
   timeout: "30s"
-  # DNS zone list. Environment variable: ADI_DNS_ZONES (space-separated list)
+  # DNS zone list. Environment variable: ADI_DNS_ZONES (comma-separated list)
   zones:
     - server.local.
   # No-transfer mode configuration.
@@ -29,14 +29,14 @@ dns:
     algo: "hmac-sha256"
 # Etcd datasource configuration.
 etcd:
-  # Etcd cluster endpoints. Environment variable: ADI_ETCD_ENDPOINTS (space-separated list)
+  # Etcd cluster endpoints. Environment variable: ADI_ETCD_ENDPOINTS (comma-separated list)
   endpoints:
     - "127.0.0.1:2379"
   # Network timeout for etcd requests. Environment variable: ADI_ETCD_TIMEOUT
   timeout: "30s"
   # Etcd k/v path prefix. Environment variable: ADI_ETCD_PREFIX
   prefix: "ANSIBLE_INVENTORY"
-  # Etcd host zone list. Environment variable: ADI_DNS_ZONES (space-separated list)
+  # Etcd host zone list. Environment variable: ADI_DNS_ZONES (comma-separated list)
   zones:
     - server.local.
   # Etcd authentication configuration.
