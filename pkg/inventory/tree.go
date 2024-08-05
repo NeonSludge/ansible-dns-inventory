@@ -64,8 +64,8 @@ func (n *Node) ImportHosts(hosts map[string][]*HostAttributes, sep string) {
 				groupNode := envNode.AddChild(groupName)
 
 				// Service: root>environment>role>service[1]>...>service[N].
-				for i, srv := range strings.Split(attr.Srv, sep) {
-					if len(srv) > 0 && (i == 0 || env != ansibleRootGroup || attr.Env == ansibleRootGroup) {
+				for _, srv := range strings.Split(attr.Srv, sep) {
+					if len(srv) > 0 {
 						groupName = groupName + sep + srv
 						groupNode = groupNode.AddChild(groupName)
 					}

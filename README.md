@@ -176,7 +176,9 @@ In general, if you have a single TXT record for a `HOST` and this record has all
 @all:
   |--@all_<ROLE>:
   |  |--@all_<ROLE>_<SRV[1]>:
-  |  |  |--<HOST>
+  |  |  |--@all_<ROLE>_<SRV[1]>_<SRV[2]>:
+  |  |  |  |--@all_<ROLE>_<SRV[1]>_<SRV[2]>_..._<SRV[n]>:
+  |  |  |  |  |--<HOST>
   |--@all_host:
   |  |--@all_host_<OS>:
   |  |  |--<HOST>
@@ -205,9 +207,12 @@ These will produce the following Ansible inventory tree:
 @all:
   |--@all_app:
   |  |--@all_app_tomcat:
-  |  |  |--app01.infra.local
-  |  |  |--app02.infra.local
-  |  |  |--app03.infra.local
+  |  |  |--@all_app_tomcat_backend:
+  |  |  |  |--@all_app_tomcat_backend_auth:
+  |  |  |  |  |--app01.infra.local
+  |  |  |  |  |--app02.infra.local
+  |  |  |  |--@all_app_tomcat_backend_media:
+  |  |  |  |  |--app03.infra.local
   |--@all_host:
   |  |--@all_host_linux:
   |  |  |--app01.infra.local
